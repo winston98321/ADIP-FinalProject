@@ -8,7 +8,7 @@ def nothing(x):
 #aurora_1
 #foreground_1
 #light_foreground_1
-img_original=cv2.imread('./img./light_foreground_5.jpg')
+img_original=cv2.imread('./img./aurora_5.jpg')
 #颜色空间的转换
 img_original = cv2.resize(img_original, (500, 500))
 img_hsv=cv2.cvtColor(img_original,cv2.COLOR_BGR2LAB)
@@ -17,7 +17,7 @@ cv2.namedWindow(winName)
 #新建6个滑动条，表示颜色范围的上下边界，这里滑动条的初始化位置即为黄色的颜色范围
 cv2.createTrackbar('LowerbH',winName,174,255,nothing)
 cv2.createTrackbar('LowerbS',winName,159,255,nothing)
-cv2.createTrackbar('LowerbV',winName,180,255,nothing)
+cv2.createTrackbar('LowerbV',winName,0,255,nothing)
 cv2.createTrackbar('UpperbH',winName,255,255,nothing)
 cv2.createTrackbar('UpperbS',winName,255,255,nothing)
 cv2.createTrackbar('UpperbV',winName,255,255,nothing)
@@ -34,7 +34,7 @@ while(1):
     #得到目标颜色的二值图像，用作cv2.bitwise_and()的掩模
     #print(lowerbH,lowerbS,lowerbV)
     
-    img_target=cv2.inRange(img_original,(lowerbH,lowerbS,lowerbV),(upperbH,upperbS,upperbV))
+    img_target=cv2.inRange(img_hsv,(lowerbH,lowerbS,lowerbV),(upperbH,upperbS,upperbV))
     #输入图像与输入图像在掩模条件下按位与，得到掩模范围内的原图像
     img_specifiedColor=cv2.bitwise_and(img_original,img_original,mask=img_target)
 
