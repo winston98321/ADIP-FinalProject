@@ -77,3 +77,12 @@ void MainWindow::on_G_sliderMoved(int position)
     ui->Glabel_2->setText(QString::number(position));
 }
 
+
+void MainWindow::on_TrailLengthSlider_sliderMoved(int position)
+{
+    int hour = position / 60;
+    int minutes = position % 60;
+    ui->TrailLength->setText("曝光時長：" + QString::number(hour) + "小時" +  QString::number(minutes) + "分鐘");
+
+}
+

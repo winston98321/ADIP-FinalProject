@@ -32,6 +32,8 @@ private slots:
 
     void on_G_sliderMoved(int position);
 
+    void on_TrailLengthSlider_sliderMoved(int position);
+
 private:
     Ui::MainWindow *ui;
 
