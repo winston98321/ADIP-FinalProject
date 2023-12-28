@@ -1,7 +1,9 @@
-Ôªø#include <opencv2/opencv.hpp>
+#include <opencv2/opencv.hpp>
 #include <string>
 #include <Vector>
 #include<iostream>
+
+
 using namespace cv;
 using namespace std;
 #define MY_PI 3.1415
@@ -97,8 +99,8 @@ void histogram(Mat& input) {
 			Point(bin_w * (i), hist_h - cvRound(r_hist.at<float>(i))),
 			Scalar(0, 0, 255), 2, 8, 0);
 	}
-	imshow("calcHist Demo", histImage);
-	waitKey();
+	cv::imshow("calcHist Demo", histImage);
+	cv::waitKey();
 }
 
 Mat RGB2HSI(const Mat& rgb) {
@@ -113,7 +115,7 @@ Mat RGB2HSI(const Mat& rgb) {
 			float num = (R - G + R - B) / 2,
 				den = sqrt((R - G) * (R - G) + (R - B) * (G - B)),
 				theta = acos(num / den);
-			if (den == 0) H = 0; 
+			if (den == 0) H = 0;
 			else H = B <= G ? theta / (2 * MY_PI) : 1 - theta / (2 * MY_PI);
 
 			float sum = B + G + R;
@@ -164,8 +166,8 @@ void showRGB_histogram(Mat img) {
 			Scalar(0, 0, 255), 2, 8, 0);
 	}
 
-	imshow("RGB Histogram", histImage);
-	waitKey();
+	cv::imshow("RGB Histogram", histImage);
+	cv::waitKey();
 }
 void showgrayscale_histogram(Mat img) {
 	int histSize = 256;
@@ -192,8 +194,8 @@ void showgrayscale_histogram(Mat img) {
 	}
 
 	// Display histogram image
-	imshow("Grayscale Histogram", histImage);
-	waitKey(0);
+	cv::imshow("Grayscale Histogram", histImage);
+	cv::waitKey(0);
 }
 void gammaTransform(cv::Mat& input_image, cv::Mat& output_image, double gamma) {
 	// Make sure the input image is not empty
@@ -212,15 +214,216 @@ void gammaTransform(cv::Mat& input_image, cv::Mat& output_image, double gamma) {
 	output_image *= 255.0;
 	output_image.convertTo(output_image, CV_8U);
 }
-int main()
-{	
-	string fileName = "./img./aurora_1.jpg";
-	Mat img = imread(fileName);
-	Mat org_img = img;
-	resize(img, img, Size(500,500));
+cv::Mat get_star(const cv::Mat img, cv::Mat& star_mask) {
+	cv::Scalar lowerBound(174, 159, 0);
+	cv::Scalar upperBound(255, 255, 255);
 
-	imshow("open", img);
-	waitKey();
+	// Create a binary mask (star_mask) based on the color range
+	cv::inRange(img, lowerBound, upperBound, star_mask);
+
+	// Apply the binary mask to the original image
+	cv::Mat star_result;
+	cv::bitwise_and(img, img, star_result, star_mask);
+	cv::cvtColor(star_result, star_result, COLOR_BGR2GRAY);
+
+	// cv::imshow("Star Mask", star_result);
+	
+	// Find contours in the image and cancel too big contour set as 200
+	std::vector<std::vector<cv::Point>> contours;
+	std::vector<cv::Vec4i> hierarchy;
+	Mat star_process = star_result.clone();
+	cv::dilate(star_process, star_process, cv::Mat());
+	cv::dilate(star_process, star_process, cv::Mat());
+	cv::dilate(star_process, star_process, cv::Mat());
+	cv::dilate(star_process, star_process, cv::Mat());
+
+	cv::findContours(star_process, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+	// Draw contours on the original image
+	cv::Mat contourImage = star_result.clone();
+	cv::Mat mask = cv::Mat::ones(star_result.size(), CV_8UC1) * 255;
+	//cv::drawContours(contourImage, contours, -1, cv::Scalar(0, 255, 0), 2);
+	//cout << contours.size() << endl;
+	for (int i = 0; i < contours.size(); ++i) {
+		double area = cv::contourArea(contours[i]);
+		//cout << i << " " << area << " " << contours[i] << endl;
+
+		if (area > 200) {
+			drawContours(mask, contours, int(i), Scalar(0), -1, 8);//dst,contour,number of contour,color,fill/size of line/
+			//cv::fillPoly(mask,  contours, cv::Scalar(0), 8, 0);
+		}
+
+	}
+	cv::Mat resultImage;
+	star_result.copyTo(resultImage, mask);
+	//cv::imshow("Contour Image", resultImage);
+	return resultImage;
+}
+cv::Mat kmeans_seg(const cv::Mat org_img, int k) {
+	Mat imageo = org_img.clone();
+	cv::cvtColor(imageo, imageo, COLOR_BGR2HSV);
+	std::vector<cv::Mat> channels;
+	cv::split(imageo, channels);
+	cv::Mat vChannel = channels[2];
+	Mat Output_gamma2;
+	gammaTransform(vChannel, Output_gamma2, 0.5);
+	Mat image = Output_gamma2;
+	int kernel_size =15;
+	medianBlur(image, image, kernel_size);
+
+	Mat reshapedImage = image.reshape(1, image.rows * image.cols);
+	reshapedImage.convertTo(reshapedImage, CV_32F);
+
+	// Set the number of clusters (k)
+	
+
+	// Set the criteria for k-means algorithm
+	TermCriteria criteria(TermCriteria::EPS + TermCriteria::MAX_ITER, 100, 0.2);
+	Mat labels, centers;
+
+	// Apply k-means algorithm
+	cv::kmeans(reshapedImage, k, labels, criteria, 3, KMEANS_PP_CENTERS, centers);
+
+	// Convert centers to 8-bit for visualization
+	centers.convertTo(centers, CV_8U);
+
+	// Create a segmented image using cluster centers
+	Mat segmentedImage(image.size(), CV_8U);
+
+	for (int i = 0; i < reshapedImage.rows; ++i) {
+		int clusterIdx = labels.at<int>(i);
+		segmentedImage.at<uchar>(i / image.cols, i % image.cols) = centers.at<uchar>(clusterIdx);
+	}
+
+	// Display the original and segmented images
+	cv::imshow("kmeans Image", segmentedImage);
+	return segmentedImage;
+}
+void fillContourRegion(cv::Mat img, cv::Mat star_img) {
+	Mat kmean_process = img.clone();
+	std::vector<std::vector<cv::Point>> contours;
+	std::vector<cv::Vec4i> hierarchy;
+	Mat edges;
+
+	medianBlur(kmean_process, kmean_process, 9);
+
+	Canny(kmean_process, edges, 30, 100);
+	
+	//cv::Mat openedImage;
+	
+	
+	for (int i = 0; i < 500; i++) {
+		for (int j = 0; j < 500; j++) {
+			if (int(edges.at<uchar>(i, j)) > 128) {
+				edges.at<uchar>(i, j) = 255;
+			}
+			else edges.at<uchar>(i, j) = 0;
+		}
+	}
+	for (int i = 0; i < 500; i++) {
+		edges.at<uchar>(i, 0) = 255;
+		edges.at<uchar>(i, 499) = 255;
+		edges.at<uchar>(0, i) = 255;
+		edges.at<uchar>(499, i) = 255;
+	}
+	imshow("knn_Canny Edges1", edges);
+	cv::findContours(edges, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+	// Draw contours on the original image
+	cv::Mat contourImage = img.clone();
+	cv::Mat mask = cv::Mat::ones(img.size(), CV_8UC1) * 255;
+	//cv::drawContours(contourImage, contours, -1, cv::Scalar(0, 255, 0), 2);
+	cout << contours.size() <<"here"<< endl;
+	Mat answer;
+	for (int i = 0; i < star_img.cols; i++) {
+		for (int j = 0; j < star_img.rows; j++) {
+			if (int(star_img.at<uchar>(j, i)) != 0) {
+				cout << i << " " << j << endl;
+				for (int ii = 0; ii < contours.size(); ii++) {
+					cv::Point testPoint(j, i);
+					
+					double distance = cv::pointPolygonTest(contours[ii], testPoint, false);
+					cout << distance << endl;
+					drawContours(mask, contours, int(ii), Scalar(0), -1, 8);//dst,contour,number of contour,color,fill/size of line/
+					if (distance > 0) {
+						mask.at<uchar>(i, j) = 0;
+						//drawContours(mask, contours, int(ii), Scalar(0), -1, 8);//dst,contour,number of contour,color,fill/size of line/
+							//cv::fillPoly(mask,  contours, cv::Scalar(0), 8, 0);
+					}
+				}
+			}
+			
+			star_img.copyTo(star_img, mask);
+			img.copyTo(answer, mask);
+		}
+	}
+	cv::imshow("knn_mytest", mask);
+}
+//#https://www.educative.io/answers/flood-fill-algorithm-in-cpp
+void myfloodFill(cv::Mat& image, int x, int y, int currColor, int newColor)
+{
+	// Base cases
+	if (x < 0 || x >= image.cols || y < 0 || y >= image.rows)
+		return;
+	if (int(image.at<uchar>(x, y)) != currColor)
+		return;
+	if (int(image.at<uchar>(x, y)) == newColor)
+		return;
+	
+	// Replace the color at cell (x, y)
+	image.at<uchar>(x, y) = newColor;
+
+	// Recursively call for north, east, south, and west
+	myfloodFill(image, x + 1, y, currColor, newColor);
+	myfloodFill(image, x - 1, y, currColor, newColor);
+	myfloodFill(image, x, y + 1, currColor, newColor);
+	myfloodFill(image, x, y - 1, currColor, newColor);
+}
+
+// It mainly finds the previous color on (x, y) and
+// calls floodFill()
+void findColor(cv::Mat& image, int x, int y, int newColor)
+{
+	int currColor = int(image.at<uchar>(y, x));
+	myfloodFill(image, x, y, currColor, newColor);
+}
+vector<Point> get_star_location(Mat image) {
+	vector<Point>ans;
+	for (int i = 0; i < image.cols; i++) {
+		for (int j = 0; j < image.rows; j++) {
+			Point p;
+			if (int(image.at<uchar>(i, j)) != 0) {
+				p.x = i; p.y = j;
+				ans.push_back(p);
+			}
+		}
+	}
+	return ans;
+}
+cv::Mat customFloodFill(cv::Mat image, int x, int y, cv::Scalar fillColor) {
+	cv::Point seedPoint(x, y);
+	int loDiff = 20;  // ßC¶«´◊Æt≤ßÏH≠»
+	int upDiff = 20;  // ∞™¶«´◊Æt≤ßÏH≠»
+
+	int flags = 4  | (255 << 8);
+
+	cv::Mat mask;
+	mask.create(image.rows + 2, image.cols + 2, CV_8U);
+	mask = cv::Scalar::all(0);
+
+	cv::floodFill(image, mask, seedPoint, fillColor, nullptr, cv::Scalar(loDiff), cv::Scalar(upDiff), flags);
+
+	return mask;
+}
+int main()
+{
+	string fileName = "./img./foreground_1.jpg";
+	Mat img = imread(fileName);
+
+	resize(img, img, Size(500, 500));
+	Mat org_img = img;
+	cv::imshow("open", img);
+
 
 	//Mat element = getStructuringElement(MORPH_ELLIPSE, Size(12, 12));
 	//morphologyEx(img, img, MORPH_OPEN, element);
@@ -230,31 +433,54 @@ int main()
 
 	////imgLog(img, LogImg);
 	//histogram(img);
+
 	int blocksize = 10;
 	int gridWidth = img.cols / blocksize;
 	int gridHeight = img.rows / blocksize;
 
-	Scalar lowerBound(174, 159, 0);
-	Scalar upperBound(255, 255, 255);
-	Mat star_mask;
-	inRange(img, lowerBound, upperBound, star_mask);
-	
-	Mat star_result;
-	bitwise_and(img, img, star_result, star_mask);
-	imshow("Star Mask", star_result);
-	cvtColor(img, img, COLOR_BGR2GRAY);
 
-	// Âú®10*10Á∂≤Ê†º‰∏≠Êâæmedian number
+	cv::Mat star_mask;
+	cv::Mat star_result = get_star(img, star_mask);
+	cv::imshow("starresult",star_result);
+
+	
+	cv::cvtColor(img, img, COLOR_BGR2GRAY);
+
+	//Mat segmentedImage;
+	Mat segmentedImage = kmeans_seg(org_img,4);
+	vector<Point>star_location = get_star_location(star_result);
+	cv::imshow("segmentedImage_result", segmentedImage);
+	for (int i = 0; i < star_location.size(); i++) {
+		cout << star_location[i].x << " " << star_location[i].y << endl;
+		Mat mymask = customFloodFill(segmentedImage, int(star_location[i].y), int(star_location[i].x), 0);
+	}
+
+	cv::imshow("segmentedImage_result2", segmentedImage);
+	//
+	//
+	// 
+	// 
+	// ≥o§U≠±•ÿ´e¨O©Uß£•i•H§£•Œ¨› :(((
+	// 
+	// 
+	// 
+	// 
+	// 
+	//fillContourRegion(segmentedImage, star_result);
+	
+
+	// ¶b10*10∫ÙÆÊ§§ß‰median number
 	vector <int>median_list;
 	for (int i = 0; i < blocksize; i++) {
-		for(int j=0; j< blocksize;j++){
+		for (int j = 0; j < blocksize; j++) {
 			vector<int>tmp;
 			bool star_flag = false;
 			for (int bl_i = i * gridHeight; bl_i < gridHeight * (i + 1); bl_i++) {
 				for (int bl_j = j * gridHeight; bl_j < gridHeight * (j + 1); bl_j++) {
-					
-					tmp.push_back(static_cast<int>(img.at<uchar>(bl_i, bl_j)));
-					if (star_mask.at<bool>(bl_i, bl_j) == 255) {;
+
+					tmp.push_back(static_cast<int>(segmentedImage.at<uchar>(bl_i, bl_j)));
+					if (star_mask.at<bool>(bl_i, bl_j) == 255) {
+						;
 						star_flag = true;
 					}
 				}
@@ -270,9 +496,9 @@ int main()
 				int middle2 = tmp[tmp.size() / 2];
 				median = (middle1 + middle2) / 2;
 			}
-			
-			if(star_flag)median_list.push_back(median);
-			
+
+			if (star_flag)median_list.push_back(median);
+
 		}
 	}
 	cout << "medianlist" << endl;
@@ -284,7 +510,7 @@ int main()
 	nth_element(median_list.begin(), median_list.begin() + median_list.size() / 2, median_list.end());
 	for (int i = 0; i < median_list.size(); i++) {
 		if (test_list.size() == 0) {
-			
+
 			int median;
 			if (median_list.size() % 2 == 1) {
 				median = median_list[median_list.size() / 2];
@@ -309,13 +535,13 @@ int main()
 			}
 		}
 	}
-	
-	cout << endl<<"testlist" << endl;
+
+	cout << endl << "testlist" << endl;
 	for (int num : test_list) {
 
 		std::cout << num << " ";
 	}
-		
+
 
 	/*
 	Mat hsi_img = RGB2HSI(img);
@@ -323,35 +549,51 @@ int main()
 	extractChannel(hsi_img, solo_img, 0);*/
 
 	// Apply Canny edge detection to the intensity component
-	/*
-	Mat edges;
-	
-	Mat hsv;
-	cvtColor(img, hsv, COLOR_BGR2GRAY);
-	Mat Output_gamma;
-	gammaTransform(hsv, Output_gamma,1.5);
-	Canny(Output_gamma, edges, 100, 250);
-	imshow("Canny Edges", edges);
-	waitKey();
 
-	cv::imshow("Gamma Transformed Image", Output_gamma);
-	showRGB_histogram(img);
-	showgrayscale_histogram(Output_gamma);*/
+	Mat edges;
+
+	Mat hsv= segmentedImage;
+	//cvtColor(org_img, hsv, COLOR_BGR2GRAY);
+	GaussianBlur(hsv, hsv, cv::Size(5, 5), 1.5, 1.5);
+	Mat Output_gamma;
+	//gammaTransform(hsv, Output_gamma,1.5);
+	Canny(hsv, edges, 5, 30);
+	imshow("Canny Edges", edges);
+
+
+	//imshow("Gamma Transformed Image", Output_gamma);
+	//showRGB_histogram(org_img);
+	//showgrayscale_histogram(Output_gamma);
 	for (int i = 0; i < img.rows; i++) {
 		for (int j = 0; j < img.cols; j++) {
-	
-			int now = static_cast<int>(img.at<uchar>(i, j));
-			
+
+			int now = static_cast<int>(segmentedImage.at<uchar>(i, j));
+
 			for (int num : test_list) {
-				if (now < num+25 && now > num-25) {
+				if (now < num + 10 && now > num - 10) {
+					uchar n = 0;
+
+					segmentedImage.at<uchar>(i, j) = n;
+				}
+				else {
 					uchar n = 255;
-					
-					img.at<uchar>(i, j) = n;
+					segmentedImage.at<uchar>(i, j) = n;
 				}
 			}
-			
+
 		}
-	}imshow(" Threshold Image", img);
+	}imshow(" Threshold Image", segmentedImage);
+	cv::Mat dilatedEdges;
+	cv::dilate(img, dilatedEdges, cv::Mat());
+	imshow(" dilatedEdges Image", dilatedEdges);
+	cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(15, 15));
+
+	// Apply erosion
+	cv::Mat erodedImage2;
+	cv::erode(dilatedEdges, erodedImage2, kernel);
+	cv::imshow(" erodedImage Image", erodedImage2);
+	cv::dilate(erodedImage2, dilatedEdges, cv::Mat());
+	cv::imshow(" dilatedEdges Image", dilatedEdges);
 	/*
 	medianBlur(img, img, 45);
 	cvtColor(img, img, COLOR_BGR2GRAY);
@@ -359,28 +601,29 @@ int main()
 	Mat binaryImage;
 	adaptiveThreshold(img, binaryImage, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 31, 1);
 
-	// È°ØÁ§∫ÂéüÂßãÂúñÂÉèÂíå‰∫åÂÄºÂåñÂúñÂÉè
+	// ≈„•‹≠Ï©lπœπ≥©M§G≠»§∆πœπ≥
 
 	imshow("Adaptive Threshold Image", binaryImage);
 	waitKey(0);
 
 
 
-	
-	
+
+
 	cv::waitKey(0);*/
-/*	for (int i = 1; i < 10; i++) {
-		// Áï´Ê∞¥Âπ≥Á∑ö
-		line(img, Point(0, i * gridHeight), Point(imageWidth, i * gridHeight), Scalar(0, 255, 0), 2);
 
-		// Áï´ÂûÇÁõ¥Á∑ö
-		line(img, Point(i * gridWidth, 0), Point(i * gridWidth, imageHeight), Scalar(0, 255, 0), 2);
-	}*/
+	/*	for (int i = 1; i < 10; i++) {
+			// µe§Ù•≠Ωu
+			line(img, Point(0, i * gridHeight), Point(imageWidth, i * gridHeight), Scalar(0, 255, 0), 2);
 
-	// È°ØÁ§∫Â∏∂ÊúâÁ∂≤Ê†ºÁöÑÂúñÁâá
+			// µe´´™ΩΩu
+			line(img, Point(i * gridWidth, 0), Point(i * gridWidth, imageHeight), Scalar(0, 255, 0), 2);
+		}*/
+
+		// ≈„•‹±a¶≥∫ÙÆÊ™∫πœ§˘
 	imshow("Grid Image", img);
 	waitKey(0);
-	
-	
+
+
 	return 0;
 }
