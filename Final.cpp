@@ -257,7 +257,10 @@ cv::Mat get_star(const cv::Mat img, cv::Mat& star_mask) {
 	cv::Mat resultImage;
 	star_result.copyTo(resultImage, mask);
 	//cv::imshow("Contour Image", resultImage);
-	return resultImage;
+	Mat threshold_resultImage;
+	cv::threshold(resultImage, threshold_resultImage, 1, 255, cv::THRESH_BINARY);
+
+	return threshold_resultImage;
 }
 cv::Mat kmeans_seg(const cv::Mat org_img, int k) {
 	Mat imageo = org_img.clone();
@@ -415,6 +418,88 @@ cv::Mat customFloodFill(cv::Mat image, int x, int y, cv::Scalar fillColor) {
 
 	return mask;
 }
+cv::Mat my_median_algo(Mat image,Mat starmask ,int blocksize = 10) {
+	vector <int>median_list;
+	int gridWidth = image.cols / blocksize;
+	int gridHeight = image.rows / blocksize;
+	for (int i = 0; i < blocksize; i++) {
+		for (int j = 0; j < blocksize; j++) {
+			vector<int>tmp;
+			bool star_flag = false;
+			for (int bl_i = i * gridHeight; bl_i < gridHeight * (i + 1); bl_i++) {
+				for (int bl_j = j * gridHeight; bl_j < gridHeight * (j + 1); bl_j++) {
+
+					tmp.push_back(static_cast<int>(image.at<uchar>(bl_i, bl_j)));
+					if (starmask.at<bool>(bl_i, bl_j) == 255) {
+						star_flag = true;
+					}
+				}
+			}
+			
+			nth_element(tmp.begin(), tmp.begin() + tmp.size() / 2, tmp.end());
+			int median;
+			if (tmp.size() % 2 == 1) {
+				median = tmp[tmp.size() / 2];
+			}
+			else {
+				int middle1 = tmp[tmp.size() / 2 - 1];
+				int middle2 = tmp[tmp.size() / 2];
+				median = (middle1 + middle2) / 2;
+			}
+
+			if (star_flag)median_list.push_back(median);
+
+		}
+	}
+
+	vector<int> test_list;
+	nth_element(median_list.begin(), median_list.begin() + median_list.size() / 2, median_list.end());
+	for (int i = 0; i < median_list.size(); i++) {
+		if (test_list.size() == 0) {
+
+			int median;
+			if (median_list.size() % 2 == 1) {
+				median = median_list[median_list.size() / 2];
+			}
+			else {
+				int middle1 = median_list[median_list.size() / 2 - 1];
+				int middle2 = median_list[median_list.size() / 2];
+				median = (middle1 + middle2) / 2;
+			}
+			test_list.push_back(median);
+		}
+		else {
+			bool test_flag = true;
+			for (int j = 0; j < test_list.size(); j++) {
+				if (median_list[i] < test_list[j] + 20 && median_list[i] > test_list[j] - 20) {
+					test_flag = false;
+				}
+			}
+			if (test_flag) {
+				test_list.push_back(median_list[i]);
+			}
+		}
+	}
+	for (int i = 0; i < image.rows; i++) {
+		for (int j = 0; j < image.cols; j++) {
+
+			int now = static_cast<int>(image.at<uchar>(i, j));
+
+			for (int num : test_list) {
+				if (now < num + 10 && now > num - 10) {
+					uchar n = 0;
+					image.at<uchar>(i, j) = n;
+				}
+				else {
+					uchar n = 255;
+					image.at<uchar>(i, j) = n;
+				}
+			}
+
+		}
+	}
+	return image;
+}
 int main()
 {
 	string fileName = "./img./foreground_1.jpg";
@@ -467,80 +552,13 @@ int main()
 	// 
 	// 
 	//fillContourRegion(segmentedImage, star_result);
+	Mat my_segmentaed_image;
+	my_segmentaed_image = my_median_algo(segmentedImage, star_mask, 10);
+	cv::imshow("mymedian_segmentaed_image", my_segmentaed_image);
+	
 	
 
-	// 在10*10網格中找median number
-	vector <int>median_list;
-	for (int i = 0; i < blocksize; i++) {
-		for (int j = 0; j < blocksize; j++) {
-			vector<int>tmp;
-			bool star_flag = false;
-			for (int bl_i = i * gridHeight; bl_i < gridHeight * (i + 1); bl_i++) {
-				for (int bl_j = j * gridHeight; bl_j < gridHeight * (j + 1); bl_j++) {
 
-					tmp.push_back(static_cast<int>(segmentedImage.at<uchar>(bl_i, bl_j)));
-					if (star_mask.at<bool>(bl_i, bl_j) == 255) {
-						;
-						star_flag = true;
-					}
-				}
-			}
-			cout << " !!!!" << endl;
-			nth_element(tmp.begin(), tmp.begin() + tmp.size() / 2, tmp.end());
-			int median;
-			if (tmp.size() % 2 == 1) {
-				median = tmp[tmp.size() / 2];
-			}
-			else {
-				int middle1 = tmp[tmp.size() / 2 - 1];
-				int middle2 = tmp[tmp.size() / 2];
-				median = (middle1 + middle2) / 2;
-			}
-
-			if (star_flag)median_list.push_back(median);
-
-		}
-	}
-	cout << "medianlist" << endl;
-	for (int num : median_list) {
-
-		std::cout << num << " ";
-	}
-	vector<int> test_list;
-	nth_element(median_list.begin(), median_list.begin() + median_list.size() / 2, median_list.end());
-	for (int i = 0; i < median_list.size(); i++) {
-		if (test_list.size() == 0) {
-
-			int median;
-			if (median_list.size() % 2 == 1) {
-				median = median_list[median_list.size() / 2];
-			}
-			else {
-				int middle1 = median_list[median_list.size() / 2 - 1];
-				int middle2 = median_list[median_list.size() / 2];
-				median = (middle1 + middle2) / 2;
-			}
-			test_list.push_back(median);
-		}
-		else {
-			bool test_flag = true;
-			for (int j = 0; j < test_list.size(); j++) {
-				if (median_list[i] < test_list[j] + 20 && median_list[i] > test_list[j] - 20) {
-					test_flag = false;
-				}
-			}
-			if (test_flag) {
-				test_list.push_back(median_list[i]);
-				cout << median_list[i] << endl;
-			}
-		}
-	}
-
-	cout << endl << "testlist" << endl;
-	for (int num : test_list) {
-
-		std::cout << num << " ";
-	}
 
 
 	/*
@@ -564,25 +582,8 @@ int main()
 	//imshow("Gamma Transformed Image", Output_gamma);
 	//showRGB_histogram(org_img);
 	//showgrayscale_histogram(Output_gamma);
-	for (int i = 0; i < img.rows; i++) {
-		for (int j = 0; j < img.cols; j++) {
-
-			int now = static_cast<int>(segmentedImage.at<uchar>(i, j));
-
-			for (int num : test_list) {
-				if (now < num + 10 && now > num - 10) {
-					uchar n = 0;
-
-					segmentedImage.at<uchar>(i, j) = n;
-				}
-				else {
-					uchar n = 255;
-					segmentedImage.at<uchar>(i, j) = n;
-				}
-			}
-
-		}
-	}imshow(" Threshold Image", segmentedImage);
+	/*
+	imshow(" Threshold Image", segmentedImage);
 	cv::Mat dilatedEdges;
 	cv::dilate(img, dilatedEdges, cv::Mat());
 	imshow(" dilatedEdges Image", dilatedEdges);
@@ -594,6 +595,7 @@ int main()
 	cv::imshow(" erodedImage Image", erodedImage2);
 	cv::dilate(erodedImage2, dilatedEdges, cv::Mat());
 	cv::imshow(" dilatedEdges Image", dilatedEdges);
+	*/
 	/*
 	medianBlur(img, img, 45);
 	cvtColor(img, img, COLOR_BGR2GRAY);
@@ -612,16 +614,16 @@ int main()
 
 	cv::waitKey(0);*/
 
-	/*	for (int i = 1; i < 10; i++) {
+		for (int i = 1; i < 10; i++) {
 			// 畫水平線
-			line(img, Point(0, i * gridHeight), Point(imageWidth, i * gridHeight), Scalar(0, 255, 0), 2);
+			line(org_img, Point(0, i * gridHeight), Point(org_img.rows, i * gridHeight), Scalar(0, 255, 0), 2);
 
 			// 畫垂直線
-			line(img, Point(i * gridWidth, 0), Point(i * gridWidth, imageHeight), Scalar(0, 255, 0), 2);
-		}*/
+			line(org_img, Point(i * gridWidth, 0), Point(i * gridWidth, org_img.cols), Scalar(0, 255, 0), 2);
+		}
 
 		// 顯示帶有網格的圖片
-	imshow("Grid Image", img);
+	imshow("Grid Image", org_img);
 	waitKey(0);
 
 
