@@ -215,7 +215,7 @@ void gammaTransform(cv::Mat& input_image, cv::Mat& output_image, double gamma) {
 	output_image.convertTo(output_image, CV_8U);
 }
 cv::Mat get_star(const cv::Mat img, cv::Mat& star_mask) {
-	cv::Scalar lowerBound(174, 159, 0);
+	cv::Scalar lowerBound(174, 159, 60);
 	cv::Scalar upperBound(255, 255, 255);
 
 	// Create a binary mask (star_mask) based on the color range
@@ -232,33 +232,47 @@ cv::Mat get_star(const cv::Mat img, cv::Mat& star_mask) {
 	std::vector<std::vector<cv::Point>> contours;
 	std::vector<cv::Vec4i> hierarchy;
 	Mat star_process = star_result.clone();
-	cv::dilate(star_process, star_process, cv::Mat());
-	cv::dilate(star_process, star_process, cv::Mat());
-	cv::dilate(star_process, star_process, cv::Mat());
-	cv::dilate(star_process, star_process, cv::Mat());
 
-	cv::findContours(star_process, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+	cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(9, 9));
+
+	// Apply opening and closing operations
+	cv::Mat openingResult, closingResult, closingResult2;
+	//cv::morphologyEx(star_process, openingResult, cv::MORPH_OPEN, kernel);
+	cv::morphologyEx(star_process, closingResult, cv::MORPH_CLOSE, kernel);
+	cv::morphologyEx(closingResult, closingResult2, cv::MORPH_CLOSE, kernel);
+	
+
+	/*
+	cv::dilate(star_process, star_process, cv::Mat());
+	cv::dilate(star_process, star_process, cv::Mat());
+	cv::dilate(star_process, star_process, cv::Mat());
+	cv::dilate(star_process, star_process, cv::Mat());
+	cv::dilate(star_process, star_process, cv::Mat());
+	*/
+	cv::Mat contourImage = closingResult2.clone();
+	cv::findContours(closingResult2, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
 	// Draw contours on the original image
-	cv::Mat contourImage = star_result.clone();
-	cv::Mat mask = cv::Mat::ones(star_result.size(), CV_8UC1) * 255;
+	
+
+	cv::Mat mask = cv::Mat::ones(closingResult2.size(), CV_8UC1) * 255;
 	//cv::drawContours(contourImage, contours, -1, cv::Scalar(0, 255, 0), 2);
 	//cout << contours.size() << endl;
 	for (int i = 0; i < contours.size(); ++i) {
 		double area = cv::contourArea(contours[i]);
 		//cout << i << " " << area << " " << contours[i] << endl;
 
-		if (area > 200) {
+		if (area > 150) {
 			drawContours(mask, contours, int(i), Scalar(0), -1, 8);//dst,contour,number of contour,color,fill/size of line/
 			//cv::fillPoly(mask,  contours, cv::Scalar(0), 8, 0);
 		}
 
 	}
 	cv::Mat resultImage;
-	star_result.copyTo(resultImage, mask);
+	closingResult2.copyTo(resultImage, mask);
 	//cv::imshow("Contour Image", resultImage);
 	Mat threshold_resultImage;
-	cv::threshold(resultImage, threshold_resultImage, 1, 255, cv::THRESH_BINARY);
+	cv::threshold(resultImage, threshold_resultImage, 10, 255, cv::THRESH_BINARY);
 
 	return threshold_resultImage;
 }
@@ -268,9 +282,24 @@ cv::Mat kmeans_seg(const cv::Mat org_img, int k) {
 	std::vector<cv::Mat> channels;
 	cv::split(imageo, channels);
 	cv::Mat vChannel = channels[2];
+
+	//Mat equalized_image;
+	//equalizeHist(vChannel, equalized_image);
+	/*
+	cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+
+    // Set the clip limit (adjust as needed)
+    clahe->setClipLimit(4.0);
+
+    // Apply CLAHE to the input image
+    cv::Mat outputImage;
+    clahe->apply(inputImage, outputImage);*/
+	//imshow("myhisto", equalized_image);
 	Mat Output_gamma2;
-	gammaTransform(vChannel, Output_gamma2, 0.5);
+	gammaTransform(vChannel, Output_gamma2, 0.3);
+	showgrayscale_histogram(Output_gamma2);
 	Mat image = Output_gamma2;
+	//Mat image = vChannel;
 	int kernel_size =15;
 	medianBlur(image, image, kernel_size);
 
@@ -281,7 +310,7 @@ cv::Mat kmeans_seg(const cv::Mat org_img, int k) {
 	
 
 	// Set the criteria for k-means algorithm
-	TermCriteria criteria(TermCriteria::EPS + TermCriteria::MAX_ITER, 100, 0.2);
+	TermCriteria criteria(TermCriteria::EPS + TermCriteria::MAX_ITER, 100, 2);
 	Mat labels, centers;
 
 	// Apply k-means algorithm
@@ -301,6 +330,71 @@ cv::Mat kmeans_seg(const cv::Mat org_img, int k) {
 	// Display the original and segmented images
 	cv::imshow("kmeans Image", segmentedImage);
 	return segmentedImage;
+}
+cv::Mat hsv_kmeans_seg(const cv::Mat org_img, int k) {
+	std::vector<cv::Mat> imgRGB,imgLab,imgHSV;
+	cv::cvtColor(org_img, org_img, COLOR_BGR2Lab);
+	cv::split(org_img, imgLab);
+	cv::cvtColor(org_img, org_img, COLOR_Lab2RGB);
+	cv::split(org_img, imgRGB);
+	cv::cvtColor(org_img, org_img, COLOR_RGB2HSV);
+	cv::split(org_img, imgHSV);
+	cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+
+	// Set the clip limit (adjust as needed)
+	clahe->setClipLimit(0.1);
+	// Apply CLAHE to the input image
+	cv::Mat outputImage;
+	cv::Size gridSize(50, 50);  // You can change this to control the grid size
+	clahe->setTilesGridSize(gridSize);
+
+	// Apply CLAHE to the input image
+	//cv::Mat claheImage;
+	//clahe->apply(image, claheImage);
+	for (int i = 0; i < 3; ++i) {
+		cv::medianBlur(imgLab[i], imgLab[i], 3);  // Adjust the second parameter (kernel size) as needed
+		cv::medianBlur(imgRGB[i], imgRGB[i], 3);
+		cv::medianBlur(imgHSV[i], imgHSV[i], 3);// Adjust the second parameter (kernel size) as needed
+	}
+	for (int i = 0; i < 3; ++i) {
+		clahe->apply(imgLab[i], imgLab[i]);
+		clahe->apply(imgRGB[i], imgRGB[i]);
+		clahe->apply(imgHSV[i], imgHSV[i]);
+		//equalizeHist(imgLab[i], imgLab[i]);
+		//equalizeHist(imgRGB[i], imgRGB[i]);
+		
+	}
+	
+
+	//for (int i = 0; i < 3; ++i) {
+	//	blur(imgRGB[i], imgRGB[i], cv::Size(3,3));
+	//}
+	
+
+	
+	int n = org_img.rows * org_img.cols;
+
+	cv::Mat img6xN(n, 9, CV_8U);
+	for (int i = 0; i < 3; i++)
+		imgRGB[i].reshape(1, n).copyTo(img6xN.col(i));
+	for (int i = 3; i < 6; i++)
+		imgLab[i-3].reshape(1, n).copyTo(img6xN.col(i));
+	for (int i = 6; i < 9; i++)
+		imgHSV[i - 6].reshape(1, n).copyTo(img6xN.col(i));
+	img6xN.convertTo(img6xN, CV_32F);
+	cv::Mat bestLables;
+	TermCriteria criteria(TermCriteria::EPS , 300, 0.2);
+	Mat labels;
+
+	// Apply k-means algorithm
+	
+	cv::kmeans(img6xN, k, bestLables, criteria, 20, cv::KMEANS_PP_CENTERS);
+
+	bestLables = bestLables.reshape(0, org_img.rows);
+	cv::convertScaleAbs(bestLables, bestLables, int(255 / k));
+	cv::imshow("result", bestLables);
+	cv::waitKey();
+	return bestLables;
 }
 void fillContourRegion(cv::Mat img, cv::Mat star_img) {
 	Mat kmean_process = img.clone();
@@ -404,9 +498,12 @@ vector<Point> get_star_location(Mat image) {
 	return ans;
 }
 cv::Mat customFloodFill(cv::Mat image, int x, int y, cv::Scalar fillColor) {
+
+	
+	
 	cv::Point seedPoint(x, y);
-	int loDiff = 20;  // 低灰度差異閾值
-	int upDiff = 20;  // 高灰度差異閾值
+	int loDiff = 10;  // 低灰度差異閾值
+	int upDiff = 10;  // 高灰度差異閾值
 
 	int flags = 4  | (255 << 8);
 
@@ -502,7 +599,7 @@ cv::Mat my_median_algo(Mat image,Mat starmask ,int blocksize = 10) {
 }
 int main()
 {
-	string fileName = "./img./foreground_1.jpg";
+	string fileName = "./img./aurora_6.jpg";
 	Mat img = imread(fileName);
 
 	resize(img, img, Size(500, 500));
@@ -526,15 +623,18 @@ int main()
 
 	cv::Mat star_mask;
 	cv::Mat star_result = get_star(img, star_mask);
-	cv::imshow("starresult",star_result);
+	cv::imshow("starresult", star_result);
+	//star_mask 這個如果用不到其實可以考慮刪除，裡面會包含與星星較像的物體，可能有雪山、極光
 
 	
 	cv::cvtColor(img, img, COLOR_BGR2GRAY);
 
 	//Mat segmentedImage;
-	Mat segmentedImage = kmeans_seg(org_img,4);
+	Mat segmentedImage = hsv_kmeans_seg(org_img,5);
 	vector<Point>star_location = get_star_location(star_result);
+	//cv::cvtColor(org_img, org_img, COLOR_Lab2BGR);
 	cv::imshow("segmentedImage_result", segmentedImage);
+	medianBlur(segmentedImage, segmentedImage, 3);
 	for (int i = 0; i < star_location.size(); i++) {
 		cout << star_location[i].x << " " << star_location[i].y << endl;
 		Mat mymask = customFloodFill(segmentedImage, int(star_location[i].y), int(star_location[i].x), 0);
@@ -553,7 +653,7 @@ int main()
 	// 
 	//fillContourRegion(segmentedImage, star_result);
 	Mat my_segmentaed_image;
-	my_segmentaed_image = my_median_algo(segmentedImage, star_mask, 10);
+	my_segmentaed_image = my_median_algo(segmentedImage, star_mask, 9);
 	cv::imshow("mymedian_segmentaed_image", my_segmentaed_image);
 	
 	
