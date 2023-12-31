@@ -32,6 +32,7 @@ public slots:
     void showAbout();
     void toGenerateStarTrail();
     void startGenerate();
+    void savePng();
 
 private slots:
     void on_B_sliderMoved(int position);

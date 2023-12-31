@@ -6,6 +6,7 @@
 #include <QDebug>
 #include <opencv2/core.hpp>
 #include <opencv2/opencv.hpp>
+#include <time.h>
 
 
 using namespace cv;
@@ -30,7 +31,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->ok,SIGNAL(clicked()), this, SLOT(toGenerateStarTrail()));
     connect(ui->back2Home, SIGNAL(clicked()), this, SLOT(showHomepage()));
     connect(ui->startGenerate, SIGNAL(clicked()), this, SLOT(startGenerate()));
-
+    connect(ui->pngSaveBtn, SIGNAL(clicked()), this, SLOT(savePng()));
 }
 MainWindow::~MainWindow()
 {
@@ -105,10 +106,10 @@ Mat StarTrail(const Mat& img, Mat& result) {                             /*-----
     Mat rot_mat;
     // 找最大星星
     if (Type == 0) {
-        rot_mat = getRotationMatrix2D(center, 0.5, 1.0);
+        rot_mat = getRotationMatrix2D(center, 0.25, 1.0);
     }
     else if (Type == 1) {
-        rot_mat = getRotationMatrix2D(center, 0.8, 0.995);
+        rot_mat = getRotationMatrix2D(center, 0.25, 0.995);
     }
     else if (Type == 2) {
         rot_mat = getRotationMatrix2D(center, 0, 0.995);
@@ -120,9 +121,9 @@ Mat StarTrail(const Mat& img, Mat& result) {                             /*-----
     warpAffine(img, temp, rot_mat, img_size, INTER_LINEAR);	//轉第一下
 
     // 使用BORDER_CONSTANT，並指定邊界顏色為黑色
-    for (int i = 0; i < 2 * Minutes; i++) {
+    for (int i = 0; i < Minutes; i++) {
         warpAffine(temp, temp, rot_mat, img_size, INTER_LINEAR);
-        bitwise_or(temp, result, result);
+        bitwise_xor(temp, result, result);
     }
 
     GaussianBlur(result, result, Size(3, 3), 0.2, 0.2);
@@ -213,6 +214,11 @@ void MainWindow::showAbout()    //顯示關於畫面
 void MainWindow::toGenerateStarTrail()
 {
     ui->stackedWidget->setCurrentIndex(4);
+    ui->passTime->setText("0");
+    ui->E_starTrail->clear();
+    ui->E_png->clear();
+    ui->E_gif->clear();
+
 
 }
 
@@ -277,6 +283,7 @@ void MainWindow::startGenerate()
 {
     // ui->stackedWidget->setCurrentIndex(4);
     // ui->E_origin->setPixmap(originImage);
+    double START = clock();
     Mat trail;
     star_result.copyTo(trail);
     trail.create(Size(MatImage.cols, MatImage.rows), CV_8U);
@@ -284,6 +291,10 @@ void MainWindow::startGenerate()
     trail_mask = StarTrail(star_result, trail);
 
     ImageCombine(MatImage, trail_mask, trail);
+
+    double END = clock();
+    ui->passTime->setText(QString::number((END-START)/CLOCKS_PER_SEC));
+
     QPixmap Q_trail = MatToPixmap(trail);
     Q_trail.scaled(ui->E_starTrail->size(), Qt::KeepAspectRatio); //將圖片等比例放大至與目標label一樣大
     ui->E_starTrail->setPixmap(Q_trail);
@@ -291,8 +302,14 @@ void MainWindow::startGenerate()
     QPixmap Q_resultPng = MatToPixmap(resultPng);
     Q_resultPng.scaled(ui->E_png->size(), Qt::KeepAspectRatio);   //將圖片等比例放大至與目標label一樣大
     ui->E_png->setPixmap(Q_resultPng);
-
-
 }
 
+void MainWindow::savePng()
+{
+    // 打開檔案選擇視窗
+    QString filePath = QFileDialog::getSaveFileName(this, "選擇路徑",  QString(), "Images (*.png *.jpg)");
+    // 如果使用者取消選擇檔案，則返回
+    if (!filePath.isEmpty())
+        imwrite(filePath.toStdString(),resultPng);
+}
 
