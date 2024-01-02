@@ -215,7 +215,7 @@ void gammaTransform(cv::Mat& input_image, cv::Mat& output_image, double gamma) {
 	output_image.convertTo(output_image, CV_8U);
 }
 cv::Mat get_star(const cv::Mat img, cv::Mat& star_mask) {
-	cv::Scalar lowerBound(174, 159, 60);
+	cv::Scalar lowerBound(154, 150, 60);
 	cv::Scalar upperBound(255, 255, 255);
 
 	// Create a binary mask (star_mask) based on the color range
@@ -232,14 +232,17 @@ cv::Mat get_star(const cv::Mat img, cv::Mat& star_mask) {
 	std::vector<std::vector<cv::Point>> contours;
 	std::vector<cv::Vec4i> hierarchy;
 	Mat star_process = star_result.clone();
-
+	Mat final = star_process.clone();
 	cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(9, 9));
 
 	// Apply opening and closing operations
 	cv::Mat openingResult, closingResult, closingResult2;
+	cv::dilate(star_process, star_process, cv::Mat());
 	//cv::morphologyEx(star_process, openingResult, cv::MORPH_OPEN, kernel);
 	cv::morphologyEx(star_process, closingResult, cv::MORPH_CLOSE, kernel);
 	cv::morphologyEx(closingResult, closingResult2, cv::MORPH_CLOSE, kernel);
+
+
 	
 
 	/*
@@ -295,13 +298,38 @@ cv::Mat kmeans_seg(const cv::Mat org_img, int k) {
     cv::Mat outputImage;
     clahe->apply(inputImage, outputImage);*/
 	//imshow("myhisto", equalized_image);
-	Mat Output_gamma2;
-	gammaTransform(vChannel, Output_gamma2, 0.3);
-	showgrayscale_histogram(Output_gamma2);
-	Mat image = Output_gamma2;
+	cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+
+	// Set the clip limit (adjust as needed)
+	clahe->setClipLimit(0.3);
+	// Apply CLAHE to the input image
+	cv::Mat outputImage;
+	cv::Size gridSize(50, 50);  // You can change this to control the grid size
+	clahe->setTilesGridSize(gridSize);
+
+	// Apply CLAHE to the input image
+	//cv::Mat claheImage;
+	//clahe->apply(image, claheImage);
+	
+	cv::medianBlur(vChannel, vChannel, 5);  // Adjust the second parameter (kernel size) as needed
+	
+	blur(vChannel, vChannel, cv::Size(3, 3));
+
+
+
+		clahe->apply(vChannel, vChannel);
+
+		//equalizeHist(imgLab[i], imgLab[i]);
+		//equalizeHist(imgRGB[i], imgRGB[i]);
+
+	
+	//Mat Output_gamma2;
+	//gammaTransform(vChannel, Output_gamma2, 0.3);
+	//showgrayscale_histogram(Output_gamma2);
+	Mat image = vChannel;
 	//Mat image = vChannel;
 	int kernel_size =15;
-	medianBlur(image, image, kernel_size);
+	//medianBlur(image, image, kernel_size);
 
 	Mat reshapedImage = image.reshape(1, image.rows * image.cols);
 	reshapedImage.convertTo(reshapedImage, CV_32F);
@@ -331,21 +359,25 @@ cv::Mat kmeans_seg(const cv::Mat org_img, int k) {
 	cv::imshow("kmeans Image", segmentedImage);
 	return segmentedImage;
 }
-cv::Mat hsv_kmeans_seg(const cv::Mat org_img, int k) {
+cv::Mat hsv_kmeans_seg(cv::Mat org_img, int k) {
 	std::vector<cv::Mat> imgRGB,imgLab,imgHSV;
 	cv::cvtColor(org_img, org_img, COLOR_BGR2Lab);
 	cv::split(org_img, imgLab);
+
 	cv::cvtColor(org_img, org_img, COLOR_Lab2RGB);
 	cv::split(org_img, imgRGB);
+
 	cv::cvtColor(org_img, org_img, COLOR_RGB2HSV);
 	cv::split(org_img, imgHSV);
+	cv::cvtColor(org_img, org_img, COLOR_HSV2BGR);
+	
 	cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
 
 	// Set the clip limit (adjust as needed)
 	clahe->setClipLimit(0.1);
 	// Apply CLAHE to the input image
 	cv::Mat outputImage;
-	cv::Size gridSize(50, 50);  // You can change this to control the grid size
+	cv::Size gridSize(20, 20);  // You can change this to control the grid size
 	clahe->setTilesGridSize(gridSize);
 
 	// Apply CLAHE to the input image
@@ -355,7 +387,11 @@ cv::Mat hsv_kmeans_seg(const cv::Mat org_img, int k) {
 		cv::medianBlur(imgLab[i], imgLab[i], 3);  // Adjust the second parameter (kernel size) as needed
 		cv::medianBlur(imgRGB[i], imgRGB[i], 3);
 		cv::medianBlur(imgHSV[i], imgHSV[i], 3);// Adjust the second parameter (kernel size) as needed
+		blur(imgLab[i], imgLab[i], cv::Size(3, 3));
+		blur(imgRGB[i], imgRGB[i], cv::Size(3, 3));
+		blur(imgHSV[i], imgHSV[i], cv::Size(3, 3));
 	}
+	
 	for (int i = 0; i < 3; ++i) {
 		clahe->apply(imgLab[i], imgLab[i]);
 		clahe->apply(imgRGB[i], imgRGB[i]);
@@ -364,6 +400,7 @@ cv::Mat hsv_kmeans_seg(const cv::Mat org_img, int k) {
 		//equalizeHist(imgRGB[i], imgRGB[i]);
 		
 	}
+	
 	
 
 	//for (int i = 0; i < 3; ++i) {
@@ -497,7 +534,7 @@ vector<Point> get_star_location(Mat image) {
 	}
 	return ans;
 }
-cv::Mat customFloodFill(cv::Mat image, int x, int y, cv::Scalar fillColor) {
+cv::Mat customFloodFill(cv::Mat &image, int x, int y, cv::Scalar fillColor) {
 
 	
 	
@@ -599,14 +636,14 @@ cv::Mat my_median_algo(Mat image,Mat starmask ,int blocksize = 10) {
 }
 int main()
 {
-	string fileName = "./img./aurora_6.jpg";
+	string fileName = "./img./aurora_2.jpg";
 	Mat img = imread(fileName);
 
 	resize(img, img, Size(500, 500));
 	Mat org_img = img;
 	cv::imshow("open", img);
 
-
+	imshow("test Image", org_img);
 	//Mat element = getStructuringElement(MORPH_ELLIPSE, Size(12, 12));
 	//morphologyEx(img, img, MORPH_OPEN, element);
 	//Mat negativeImg = Mat::zeros(img.size(), img.type());
@@ -630,7 +667,8 @@ int main()
 	cv::cvtColor(img, img, COLOR_BGR2GRAY);
 
 	//Mat segmentedImage;
-	Mat segmentedImage = hsv_kmeans_seg(org_img,5);
+	Mat segmentedImage = hsv_kmeans_seg(org_img,7);
+	
 	vector<Point>star_location = get_star_location(star_result);
 	//cv::cvtColor(org_img, org_img, COLOR_Lab2BGR);
 	cv::imshow("segmentedImage_result", segmentedImage);
