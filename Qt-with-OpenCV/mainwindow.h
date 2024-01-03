@@ -3,8 +3,11 @@
 
 #include <QMainWindow>
 #include <QPushButton>
+#include <QMouseEvent>
 // #include <vector>
 #include <opencv2/opencv.hpp>
+#include <QLabel>
+#include <QPainter>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -25,6 +28,8 @@ public:
     cv::Mat star_result;
 
 
+
+
 public slots:
     void on_uploadButton_clicked();
     void showHomepage();
@@ -33,6 +38,7 @@ public slots:
     void toGenerateStarTrail();
     void startGenerate();
     void savePng();
+    void saveGif();
 
 private slots:
     void on_B_sliderMoved(int position);
@@ -45,10 +51,18 @@ private slots:
 
     void on_TrailShape_currentIndexChanged(int index);
 
+    void on_R_valueChanged(int value);
+
+    void on_G_valueChanged(int value);
+
+    void on_B_valueChanged(int value);
+
 private:
     Ui::MainWindow *ui;
     QString fileName;
-    // cv::Mat imgSrc;
-    // std::vector<cv::UMat> img;
+    bool selecting;
+    QPoint selectionStart;
+    QPoint selectionEnd;
 };
+
 #endif // MAINWINDOW_H

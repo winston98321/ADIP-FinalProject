@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1254</width>
-    <height>760</height>
+    <height>769</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -30,7 +30,7 @@
        </sizepolicy>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="Home">
        <property name="minimumSize">
@@ -465,7 +465,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
             <item>
              <widget class="QLabel" name="originImage">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -478,6 +478,9 @@ li.checked::marker { content: &quot;\2612&quot;; }
               </property>
               <property name="mouseTracking">
                <bool>false</bool>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">background-color: rgb(255, 255, 255);</string>
               </property>
               <property name="frameShape">
                <enum>QFrame::Box</enum>
@@ -496,7 +499,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
             <item>
              <widget class="QLabel" name="starIImage">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -507,8 +510,14 @@ li.checked::marker { content: &quot;\2612&quot;; }
                 <height>0</height>
                </size>
               </property>
+              <property name="mouseTracking">
+               <bool>true</bool>
+              </property>
               <property name="autoFillBackground">
                <bool>false</bool>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">background-color: rgb(255, 255, 255);</string>
               </property>
               <property name="frameShape">
                <enum>QFrame::Box</enum>
@@ -561,7 +570,10 @@ li.checked::marker { content: &quot;\2612&quot;; }
                <number>255</number>
               </property>
               <property name="value">
-               <number>174</number>
+               <number>154</number>
+              </property>
+              <property name="tracking">
+               <bool>false</bool>
               </property>
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
@@ -610,6 +622,12 @@ li.checked::marker { content: &quot;\2612&quot;; }
               <property name="maximum">
                <number>255</number>
               </property>
+              <property name="value">
+               <number>60</number>
+              </property>
+              <property name="tracking">
+               <bool>false</bool>
+              </property>
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
               </property>
@@ -649,7 +667,10 @@ li.checked::marker { content: &quot;\2612&quot;; }
                <number>255</number>
               </property>
               <property name="value">
-               <number>159</number>
+               <number>150</number>
+              </property>
+              <property name="tracking">
+               <bool>false</bool>
               </property>
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
@@ -686,7 +707,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
                </font>
               </property>
               <property name="text">
-               <string>0</string>
+               <string>60</string>
               </property>
              </widget>
             </item>
@@ -756,7 +777,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
                </font>
               </property>
               <property name="text">
-               <string>174</string>
+               <string>154</string>
               </property>
              </widget>
             </item>
@@ -822,7 +843,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
                </font>
               </property>
               <property name="text">
-               <string>159</string>
+               <string>150</string>
               </property>
              </widget>
             </item>
@@ -866,7 +887,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
              <string notr="true">QTabBar::tab(width: 120)</string>
             </property>
             <property name="currentIndex">
-             <number>0</number>
+             <number>1</number>
             </property>
             <widget class="QWidget" name="originImage_2">
              <attribute name="title">
@@ -905,7 +926,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
               <item>
                <widget class="QLabel" name="E_frontandback">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
@@ -915,6 +936,9 @@ li.checked::marker { content: &quot;\2612&quot;; }
                   <width>0</width>
                   <height>600</height>
                  </size>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">background-color: rgb(255, 255, 255);</string>
                 </property>
                 <property name="text">
                  <string>TextLabel</string>
@@ -943,7 +967,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </size>
             </property>
             <property name="currentIndex">
-             <number>0</number>
+             <number>1</number>
             </property>
             <widget class="QWidget" name="star">
              <attribute name="title">
@@ -982,7 +1006,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
               <item>
                <widget class="QLabel" name="E_starTrail">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
@@ -992,6 +1016,9 @@ li.checked::marker { content: &quot;\2612&quot;; }
                   <width>0</width>
                   <height>600</height>
                  </size>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">background-color: rgb(255, 255, 255);</string>
                 </property>
                 <property name="text">
                  <string>TextLabel</string>
@@ -1020,7 +1047,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </size>
             </property>
             <property name="currentIndex">
-             <number>1</number>
+             <number>0</number>
             </property>
             <widget class="QWidget" name="pngResult">
              <attribute name="title">
@@ -1030,7 +1057,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
               <item>
                <widget class="QLabel" name="E_png">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
@@ -1059,7 +1086,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
               <item>
                <widget class="QLabel" name="E_gif">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
@@ -1136,7 +1163,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </font>
             </property>
             <property name="text">
-             <string>TextLabel</string>
+             <string>0</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -1292,10 +1319,10 @@ li.checked::marker { content: &quot;\2612&quot;; }
              <number>1440</number>
             </property>
             <property name="singleStep">
-             <number>15</number>
+             <number>30</number>
             </property>
             <property name="pageStep">
-             <number>15</number>
+             <number>30</number>
             </property>
             <property name="orientation">
              <enum>Qt::Horizontal</enum>

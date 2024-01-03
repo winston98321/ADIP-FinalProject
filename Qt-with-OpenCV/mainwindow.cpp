@@ -4,6 +4,7 @@
 #include <QFileDialog>
 #include <QPixmap>
 #include <QDebug>
+#include <QMouseEvent>
 #include <opencv2/core.hpp>
 #include <opencv2/opencv.hpp>
 #include <time.h>
@@ -15,10 +16,11 @@ int Minutes;
 int Type;
 cv::Mat starTrail;
 cv::Mat resultPng;
+QString InputfilePath;
 
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
+MainWindow::MainWindow(QWidget *parent):
+    QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
@@ -32,7 +34,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->back2Home, SIGNAL(clicked()), this, SLOT(showHomepage()));
     connect(ui->startGenerate, SIGNAL(clicked()), this, SLOT(startGenerate()));
     connect(ui->pngSaveBtn, SIGNAL(clicked()), this, SLOT(savePng()));
+    connect(ui->gifSaveBtn, SIGNAL(clicked()), this, SLOT(saveGif()));
 }
+
+
 MainWindow::~MainWindow()
 {
     delete ui;
@@ -57,48 +62,60 @@ QPixmap MatToPixmap(cv::Mat src)
     return QPixmap::fromImage(img);
 }
 
-Mat get_star(const Mat img, Mat& star_mask, int r=174, int g=159, int b=0) {       /*-------------------生成星點------------------------*/
-    Scalar lowerBound(r, g, b);
-    Scalar upperBound(255, 255, 255);
+Mat get_star(const Mat img, Mat& star_mask, int r, int g, int b) {       /*-------------------生成星點------------------------*/
+    cv::Scalar lowerBound(r, g, b);
+    cv::Scalar upperBound(255, 255, 255);
 
     // Create a binary mask (star_mask) based on the color range
-    inRange(img, lowerBound, upperBound, star_mask);
+    cv::inRange(img, lowerBound, upperBound, star_mask);
 
     // Apply the binary mask to the original image
-    Mat star_result;
-    bitwise_and(img, img, star_result, star_mask);
-    cvtColor(star_result, star_result, COLOR_BGR2GRAY);
+    cv::Mat star_result;
+    cv::bitwise_and(img, img, star_result, star_mask);
+    cv::cvtColor(star_result, star_result, COLOR_BGR2GRAY);
+
+    // cv::imshow("Star Mask", star_result);
 
     // Find contours in the image and cancel too big contour set as 200
-    vector<std::vector<cv::Point>> contours;
-    vector<cv::Vec4i> hierarchy;
+    std::vector<std::vector<cv::Point>> contours;
+    std::vector<cv::Vec4i> hierarchy;
     Mat star_process = star_result.clone();
-    dilate(star_process, star_process, cv::Mat());
-    dilate(star_process, star_process, cv::Mat());
-    dilate(star_process, star_process, cv::Mat());
-    dilate(star_process, star_process, cv::Mat());
+    Mat final = star_process.clone();
+    cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(9, 9));
 
-    findContours(star_process, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+    // Apply opening and closing operations
+    cv::Mat openingResult, closingResult, closingResult2;
+    //cv::dilate(star_process, star_process, cv::Mat());
+    //cv::morphologyEx(star_process, openingResult, cv::MORPH_OPEN, kernel);
+    cv::morphologyEx(star_process, closingResult, cv::MORPH_CLOSE, kernel);
+    cv::morphologyEx(closingResult, closingResult2, cv::MORPH_CLOSE, kernel);
+
+    cv::Mat contourImage = closingResult2.clone();
+    cv::findContours(closingResult2, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
     // Draw contours on the original image
-    Mat contourImage = star_result.clone();
-    Mat mask = cv::Mat::ones(star_result.size(), CV_8UC1) * 255;
+
+
+    cv::Mat mask = cv::Mat::ones(closingResult2.size(), CV_8UC1) * 255;
     //cv::drawContours(contourImage, contours, -1, cv::Scalar(0, 255, 0), 2);
     //cout << contours.size() << endl;
     for (int i = 0; i < contours.size(); ++i) {
         double area = cv::contourArea(contours[i]);
         //cout << i << " " << area << " " << contours[i] << endl;
 
-        if (area > 200) {
+        if (area > 150) {
             drawContours(mask, contours, int(i), Scalar(0), -1, 8);//dst,contour,number of contour,color,fill/size of line/
             //cv::fillPoly(mask,  contours, cv::Scalar(0), 8, 0);
         }
 
     }
     cv::Mat resultImage;
-    star_result.copyTo(resultImage, mask);
+    closingResult2.copyTo(resultImage, mask);
     //cv::imshow("Contour Image", resultImage);
-    return resultImage;
+    Mat threshold_resultImage;
+    cv::threshold(resultImage, threshold_resultImage, 10, 255, cv::THRESH_BINARY);
+
+    return threshold_resultImage;
 }
 
 Mat StarTrail(const Mat& img, Mat& result) {                             /*-------------------生成星軌------------------------*/
@@ -161,13 +178,13 @@ void MainWindow::on_uploadButton_clicked()
     // QMessageBox::information(this, "Upload", "照片已上傳");
 
     // 打開檔案選擇視窗
-    QString filePath = QFileDialog::getOpenFileName(this, "選擇圖片", "", "Images (*.png *.jpg *.jpeg *.bmp *.gif)");
+    InputfilePath = QFileDialog::getOpenFileName(this, "選擇圖片", "", "Images (*.png *.jpg *.jpeg *.bmp *.gif)");
     // 如果使用者取消選擇檔案，則返回
-    if (filePath.isNull())
+    if (InputfilePath.isNull())
         return;
 
     // 顯示選擇的圖片
-    QPixmap image(filePath);
+    QPixmap image(InputfilePath);
     if (image.isNull()) {
         QMessageBox::warning(this, "錯誤", "無法讀取選擇的圖片");
         return;
@@ -177,17 +194,17 @@ void MainWindow::on_uploadButton_clicked()
     ui->stackedWidget->setCurrentIndex(3);  //換到頁面3
     // 將圖片顯示在 imageLabel 中
 
-    QoriginImage.scaled(ui->originImage->size(), Qt::KeepAspectRatio);   //將圖片等比例放大至與目標label一樣大
-    ui->originImage->setPixmap(QoriginImage);
-    QoriginImage.scaled(ui->E_origin->size(), Qt::KeepAspectRatio);   //將圖片等比例放大至與目標label一樣大
-    ui->E_origin->setPixmap(QoriginImage);
+    //將圖片等比例放大至與目標label一樣大
+    ui->originImage->setScaledContents(true);
+    ui->originImage->setPixmap(QoriginImage.scaled(ui->originImage->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
 
+    ui->E_origin->setPixmap(QoriginImage.scaled(ui->E_origin->size(),Qt::KeepAspectRatio, Qt::SmoothTransformation));//將圖片等比例放大至與目標label一樣大
 
-    MatImage = imread(filePath.toStdString());
+    MatImage = imread(InputfilePath.toStdString());
     cv::resize(MatImage,MatImage,Size(MatImage.cols * 0.8, MatImage.rows * 0.8));
 
     Mat star_mask;
-    star_result = get_star(MatImage, star_mask);
+    star_result = get_star(MatImage, star_mask,154, 150, 60);
     QPixmap star = MatToPixmap(star_result);
     star.scaled(ui->starIImage->size(), Qt::KeepAspectRatio);   //將圖片等比例放大至與目標label一樣大
     ui->starIImage->setPixmap(star);
@@ -202,11 +219,22 @@ void MainWindow::on_uploadButton_clicked()
 void MainWindow::showHomepage() //回到首頁
 {
     ui->stackedWidget->setCurrentIndex(0);
+    ui->R->setValue(154);
+    ui->Rlabel_2->setText(QString::number(154));
+    ui->G->setValue(150);
+    ui->Glabel_2->setText(QString::number(150));
+    ui->B->setValue(60);
+
+    ui->TrailLengthSlider->setValue(0);
+    ui->TrailLength->setText("曝光時長：" + QString::number(0) + "小時" +  QString::number(0) + "分鐘");
+    ui->TrailShape->setCurrentIndex(0);
 }
+
 void MainWindow::showDiscription()  //顯示說明畫面
 {
     ui->stackedWidget->setCurrentIndex(1);
 }
+
 void MainWindow::showAbout()    //顯示關於畫面
 {
     ui->stackedWidget->setCurrentIndex(2);
@@ -218,30 +246,24 @@ void MainWindow::toGenerateStarTrail()
     ui->E_starTrail->clear();
     ui->E_png->clear();
     ui->E_gif->clear();
-
-
 }
 
 
-void MainWindow::on_B_sliderMoved(int position)
-{
-    ui->Blabel_2->setText(QString::number(position));
-    Mat star_mask;
-    star_result = get_star(MatImage, star_mask,174,159,position);
-    QPixmap star = MatToPixmap(star_result);
-    star.scaled(ui->starIImage->size(), Qt::KeepAspectRatio);   //將圖片等比例放大至與目標label一樣大
-    ui->starIImage->setPixmap(star);
 
-    star.scaled(ui->E_star->size(), Qt::KeepAspectRatio);   //將圖片等比例放大至與目標label一樣大
-    ui->E_star->setPixmap(star);
-}
-
-
+/*----------------------------------------------------------------------------------------------------------傳入值更改---------*/
 void MainWindow::on_R_sliderMoved(int position)
 {
     ui->Rlabel_2->setText(QString::number(position));
+
+}
+
+void MainWindow::on_R_valueChanged(int value)
+{
     Mat star_mask;
-    star_result = get_star(MatImage, star_mask,position,159,0);
+    int g = ui->G->value();
+    int b = ui->B->value();
+    qDebug() << "r = " << value;
+    star_result = get_star(MatImage, star_mask,value,g,b);
     QPixmap star = MatToPixmap(star_result);
     star.scaled(ui->starIImage->size(), Qt::KeepAspectRatio);   //將圖片等比例放大至與目標label一樣大
     ui->starIImage->setPixmap(star);
@@ -254,8 +276,14 @@ void MainWindow::on_R_sliderMoved(int position)
 void MainWindow::on_G_sliderMoved(int position)
 {
     ui->Glabel_2->setText(QString::number(position));
+
+}
+void MainWindow::on_G_valueChanged(int value)
+{
     Mat star_mask;
-    star_result = get_star(MatImage, star_mask,174,position,0);
+    int r = ui->R->value();
+    int b = ui->B->value();
+    star_result = get_star(MatImage, star_mask,r,value,b);
     QPixmap star = MatToPixmap(star_result);
     star.scaled(ui->starIImage->size(), Qt::KeepAspectRatio);   //將圖片等比例放大至與目標label一樣大
     ui->starIImage->setPixmap(star);
@@ -263,7 +291,26 @@ void MainWindow::on_G_sliderMoved(int position)
     star.scaled(ui->E_star->size(), Qt::KeepAspectRatio);   //將圖片等比例放大至與目標label一樣大
     ui->E_star->setPixmap(star);
 }
+void MainWindow::on_B_sliderMoved(int position)
+{
+    ui->Blabel_2->setText(QString::number(position));
 
+}
+
+void MainWindow::on_B_valueChanged(int value)
+{
+    Mat star_mask;
+    int r = ui->R->value();
+    int g = ui->G->value();
+
+    star_result = get_star(MatImage, star_mask,r,g,value);
+    QPixmap star = MatToPixmap(star_result);
+    star.scaled(ui->starIImage->size(), Qt::KeepAspectRatio);   //將圖片等比例放大至與目標label一樣大
+    ui->starIImage->setPixmap(star);
+
+    star.scaled(ui->E_star->size(), Qt::KeepAspectRatio);   //將圖片等比例放大至與目標label一樣大
+    ui->E_star->setPixmap(star);
+}
 
 void MainWindow::on_TrailLengthSlider_sliderMoved(int position)
 {
@@ -302,14 +349,39 @@ void MainWindow::startGenerate()
     QPixmap Q_resultPng = MatToPixmap(resultPng);
     Q_resultPng.scaled(ui->E_png->size(), Qt::KeepAspectRatio);   //將圖片等比例放大至與目標label一樣大
     ui->E_png->setPixmap(Q_resultPng);
+
+    cv::resize(resultPng,resultPng,Size(resultPng.cols / 0.8, resultPng.rows / 0.8));
+
 }
 
 void MainWindow::savePng()
 {
     // 打開檔案選擇視窗
-    QString filePath = QFileDialog::getSaveFileName(this, "選擇路徑",  QString(), "Images (*.png *.jpg)");
+    QString filePath = QFileDialog::getSaveFileName(this, "選擇路徑",  InputfilePath, "Images (*.png *.jpg)");
     // 如果使用者取消選擇檔案，則返回
     if (!filePath.isEmpty())
         imwrite(filePath.toStdString(),resultPng);
 }
+
+
+void MainWindow::saveGif()
+{
+    QMessageBox::information(this, "Error", "還...還沒有...");
+    // // 打開檔案選擇視窗
+    // QString filePath = QFileDialog::getSaveFileName(this, "選擇路徑",  InputfilePath, "Images (*.gif *.avi)");
+    // // 如果使用者取消選擇檔案，則返回
+    // if (!filePath.isEmpty())
+    //     imwrite(filePath.toStdString(),resultGif);
+}
+
+
+
+
+
+
+
+
+
+
+
 
