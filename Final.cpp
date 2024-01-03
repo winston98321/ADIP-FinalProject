@@ -1,4 +1,6 @@
 #include <opencv2/opencv.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include <string>
 #include <Vector>
 #include<iostream>
@@ -100,7 +102,7 @@ void histogram(Mat& input) {
 			Scalar(0, 0, 255), 2, 8, 0);
 	}
 	cv::imshow("calcHist Demo", histImage);
-	cv::waitKey();
+
 }
 
 Mat RGB2HSI(const Mat& rgb) {
@@ -167,7 +169,7 @@ void showRGB_histogram(Mat img) {
 	}
 
 	cv::imshow("RGB Histogram", histImage);
-	cv::waitKey();
+
 }
 void showgrayscale_histogram(Mat img) {
 	int histSize = 256;
@@ -195,7 +197,7 @@ void showgrayscale_histogram(Mat img) {
 
 	// Display histogram image
 	cv::imshow("Grayscale Histogram", histImage);
-	cv::waitKey(0);
+
 }
 void gammaTransform(cv::Mat& input_image, cv::Mat& output_image, double gamma) {
 	// Make sure the input image is not empty
@@ -233,17 +235,14 @@ cv::Mat get_star(const cv::Mat img, cv::Mat& star_mask) {
 	std::vector<cv::Vec4i> hierarchy;
 	Mat star_process = star_result.clone();
 	Mat final = star_process.clone();
-	cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(9, 9));
+	cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(7, 7));
 
 	// Apply opening and closing operations
 	cv::Mat openingResult, closingResult, closingResult2;
-	cv::dilate(star_process, star_process, cv::Mat());
+	//cv::dilate(star_process, star_process, cv::Mat());
 	//cv::morphologyEx(star_process, openingResult, cv::MORPH_OPEN, kernel);
 	cv::morphologyEx(star_process, closingResult, cv::MORPH_CLOSE, kernel);
 	cv::morphologyEx(closingResult, closingResult2, cv::MORPH_CLOSE, kernel);
-
-
-	
 
 	/*
 	cv::dilate(star_process, star_process, cv::Mat());
@@ -252,6 +251,7 @@ cv::Mat get_star(const cv::Mat img, cv::Mat& star_mask) {
 	cv::dilate(star_process, star_process, cv::Mat());
 	cv::dilate(star_process, star_process, cv::Mat());
 	*/
+
 	cv::Mat contourImage = closingResult2.clone();
 	cv::findContours(closingResult2, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
@@ -430,7 +430,6 @@ cv::Mat hsv_kmeans_seg(cv::Mat org_img, int k) {
 	bestLables = bestLables.reshape(0, org_img.rows);
 	cv::convertScaleAbs(bestLables, bestLables, int(255 / k));
 	cv::imshow("result", bestLables);
-	cv::waitKey();
 	return bestLables;
 }
 void fillContourRegion(cv::Mat img, cv::Mat star_img) {
@@ -460,7 +459,7 @@ void fillContourRegion(cv::Mat img, cv::Mat star_img) {
 		edges.at<uchar>(0, i) = 255;
 		edges.at<uchar>(499, i) = 255;
 	}
-	imshow("knn_Canny Edges1", edges);
+	cv::imshow("knn_Canny Edges1", edges);
 	cv::findContours(edges, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
 	// Draw contours on the original image
@@ -634,16 +633,168 @@ cv::Mat my_median_algo(Mat image,Mat starmask ,int blocksize = 10) {
 	}
 	return image;
 }
+cv::Mat my_dif_algo(cv::Mat image, int blocksize = 10) {
+	cv::Mat org_img = image.clone();  // Clone the image to avoid modifying the original
+	cv::imshow("my org", org_img);
+	Mat gray;
+	cv::cvtColor(org_img, gray, cv::COLOR_BGR2GRAY);
+	cv::imshow("my gray", gray);
+	cv::cvtColor(org_img, org_img, cv::COLOR_BGR2Lab);
+	std::vector<cv::Mat> imghsv;
+	cv::split(org_img, imghsv);
+
+	// Apply median blur to each channel
+	for (int channel = 0; channel < 3; channel++) {
+		cv::medianBlur(imghsv[channel], imghsv[channel], 5);
+	}
+
+	std::vector<std::vector<int>> max_list(3, std::vector<int>(blocksize, 0));
+	std::vector<std::vector<int>> min_list(3, std::vector<int>(blocksize, 255));
+
+	int gridWidth = org_img.cols / blocksize;
+	int gridHeight = org_img.rows / blocksize;
+
+	// Compute min and max values within blocks
+	for (int i = 0; i < blocksize; i++) {
+		for (int bl_i = i * gridWidth; bl_i < gridWidth * (i + 1); bl_i++) {
+			for (int bl_j = 0; bl_j < gridHeight * 2; bl_j++) {
+				for (int channel = 0; channel < 3; channel++) {
+					int pixel_value = static_cast<int>(imghsv[channel].at<uchar>(bl_j, bl_i));
+					max_list[channel][i] = std::max(max_list[channel][i], pixel_value);
+					min_list[channel][i] = std::min(min_list[channel][i], pixel_value);
+				}
+			}
+		}
+	}
+
+	// Apply mask based on min and max values
+	for (int channel = 0; channel < 3; channel++) {
+		for (int i = 0; i < blocksize; i++) {
+			for (int bl_i = i * gridWidth; bl_i < gridWidth * (i + 1); bl_i++) {
+				for (int j = 0; j < org_img.rows; j++) {
+					if (int(imghsv[channel].at<uchar>(j, bl_i)) < min_list[channel][i] || int(imghsv[channel].at<uchar>(j, bl_i)) > max_list[channel][i]) {
+						imghsv[channel].at<uchar>(j, bl_i) = 0;
+					}
+				}
+			}
+		}
+		cv::imshow("my mask", imghsv[1]);
+	}
+
+	// Display the results
+	for (int channel = 0; channel < 3; channel++) {
+		for (int i = 0; i < blocksize; i++) {
+			std::cout << "Channel " << channel << " Block " << i + 1 << " - Max: " << max_list[channel][i]
+				<< ", Min: " << min_list[channel][i] << std::endl;
+		}
+	}
+
+	return image;
+}
+void sobel(cv::Mat image) {
+	std::vector<cv::Mat> channels;
+	cv::split(image, channels);
+	cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+
+	// Set the clip limit (adjust as needed)
+	clahe->setClipLimit(0.5);
+	// Apply CLAHE to the input image
+	cv::Mat outputImage;
+	cv::Size gridSize(20, 20);  // You can change this to control the grid size
+	clahe->setTilesGridSize(gridSize);
+
+	// Apply CLAHE to the input image
+	for (int i = 0; i < 3; ++i) {
+		cv::medianBlur(channels[i], channels[i], 5);  // Adjust the second parameter (kernel size) as needed
+		blur(channels[i], channels[i], cv::Size(3, 3));
+		clahe->apply(channels[i], channels[i]);
+	}
+
+	// Apply Sobel filter to each channel
+	cv::Mat sobelX, sobelY,edges;
+	cv::Mat sobelResult;
+
+	for (int i = 0; i < 3; ++i) {
+		// Apply Sobel filter in X direction
+		cv::Sobel(channels[i], sobelX, CV_16S, 1, 0);
+		Canny(channels[i], edges, 5, 30);
+		// Apply Sobel filter in Y direction
+		cv::Sobel(channels[i], sobelY, CV_16S, 0, 1);
+
+		// Convert back to 8-bit unsigned integer
+		cv::convertScaleAbs(sobelX, sobelX);
+		cv::convertScaleAbs(sobelY, sobelY);
+
+		// Combine the results
+		cv::addWeighted(sobelX, 0.3, sobelY, 0.7, 0, sobelResult);
+		//cv::bitwise_or(sobelResult, edges, sobelResult);
+		// Replace the original channel with the result
+		sobelResult.copyTo(channels[i]);
+	}
+
+	// Merge the channels back into an RGB image
+	cv::Mat result = cv::Mat::zeros(image.size(), CV_8U); ; // Copy the input image to initialize the result
+	
+	for (int i = 0; i < image.rows; ++i) {
+		for (int j = 0; j < image.cols; ++j) {
+			// Find the maximum value among the three channels
+			
+			
+			uchar maxValue = std::max({ channels[0].at<uchar>(i, j), channels[1].at<uchar>(i, j), channels[2].at<uchar>(i, j) });
+
+			// Set the result pixel value to the maximum
+			result.at<uchar>(i, j) = maxValue;
+		}
+	}
+	cv::threshold(result, result, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
+	cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(7, 7));
+	cv::Mat kernel3 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3));
+	cv::imshow("SobelORG Image", result);
+	// Apply opening and closing operations
+	cv::Mat openingResult, closingResult, closingResult2;
+	//cv::dilate(star_process, star_process, cv::Mat());
+	//cv::morphologyEx(star_process, openingResult, cv::MORPH_OPEN, kernel);
+	cv::morphologyEx(result, result, cv::MORPH_OPEN, kernel3);
+	cv::morphologyEx(result, result, cv::MORPH_CLOSE, kernel);
+	cv::morphologyEx(result, result, cv::MORPH_CLOSE, kernel);
+	cv::imshow("Sobel Filtered Image", result);
+
+	for (int col = 0; col < result.cols; col++) {
+		int max_row = 9999;  // 初始化最高?的行?
+
+		// 找到?前列的最高?
+		for (int row = 0; row < result.rows; row++) {
+			if (static_cast<int>(result.at<uchar>(row, col)) >=10 ) {
+				max_row = min(row,max_row);
+			}
+		}
+
+		// ?最高?下面的像素?置?255
+		for (int row = max_row; row < result.rows; row++) {
+			result.at<uchar>(row, col) = 255;
+		}
+	}
+	cv::Mat kernel2 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(20, 20));
+	cv::morphologyEx(result, result, cv::MORPH_CLOSE, kernel2);
+	cv::morphologyEx(result, result, cv::MORPH_OPEN, kernel2);
+	cv::morphologyEx(result, result, cv::MORPH_CLOSE, kernel2);
+	
+	// Display the original and filtered images
+	cv::imshow("Original Image", image);
+	cv::imshow("Sobel Filtered 255Image", result);
+
+
+}
 int main()
 {
-	string fileName = "./img./aurora_2.jpg";
+	string fileName = "./img./light_foreground_5.jpg";
 	Mat img = imread(fileName);
 
 	resize(img, img, Size(500, 500));
 	Mat org_img = img;
 	cv::imshow("open", img);
 
-	imshow("test Image", org_img);
+	cv::imshow("test Image", org_img);
 	//Mat element = getStructuringElement(MORPH_ELLIPSE, Size(12, 12));
 	//morphologyEx(img, img, MORPH_OPEN, element);
 	//Mat negativeImg = Mat::zeros(img.size(), img.type());
@@ -667,7 +818,7 @@ int main()
 	cv::cvtColor(img, img, COLOR_BGR2GRAY);
 
 	//Mat segmentedImage;
-	Mat segmentedImage = hsv_kmeans_seg(org_img,7);
+	Mat segmentedImage = hsv_kmeans_seg(org_img,8);
 	
 	vector<Point>star_location = get_star_location(star_result);
 	//cv::cvtColor(org_img, org_img, COLOR_Lab2BGR);
@@ -693,7 +844,11 @@ int main()
 	Mat my_segmentaed_image;
 	my_segmentaed_image = my_median_algo(segmentedImage, star_mask, 9);
 	cv::imshow("mymedian_segmentaed_image", my_segmentaed_image);
-	
+	//Mat ans;
+	//ans = my_dif_algo(org_img, 10);
+	Mat gray;
+	cv::cvtColor(org_img, gray, COLOR_BGR2Lab);
+	sobel(gray);
 	
 
 
@@ -708,13 +863,13 @@ int main()
 
 	Mat edges;
 
-	Mat hsv= segmentedImage;
+	Mat hsv= org_img;
 	//cvtColor(org_img, hsv, COLOR_BGR2GRAY);
 	GaussianBlur(hsv, hsv, cv::Size(5, 5), 1.5, 1.5);
 	Mat Output_gamma;
 	//gammaTransform(hsv, Output_gamma,1.5);
 	Canny(hsv, edges, 5, 30);
-	imshow("Canny Edges", edges);
+	cv::imshow("Canny Edges", edges);
 
 
 	//imshow("Gamma Transformed Image", Output_gamma);
@@ -761,8 +916,8 @@ int main()
 		}
 
 		// 顯示帶有網格的圖片
-	imshow("Grid Image", org_img);
-	waitKey(0);
+	cv::imshow("Grid Image", org_img);
+	cv::waitKey(0);
 
 
 	return 0;
