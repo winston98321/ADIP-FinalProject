@@ -4,7 +4,6 @@
 #include <QMainWindow>
 #include <QPushButton>
 #include <QMouseEvent>
-// #include <vector>
 #include <opencv2/opencv.hpp>
 #include <QLabel>
 #include <QPainter>
@@ -39,6 +38,11 @@ public slots:
     void startGenerate();
     void savePng();
     void saveGif();
+
+    void Mouse_Pressed();
+    void Mouse_Relese();
+    void Mouse_Move();
+    void Mouse_Left();
 
 private slots:
     void on_B_sliderMoved(int position);

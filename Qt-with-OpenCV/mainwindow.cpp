@@ -14,8 +14,8 @@ using namespace cv;
 using namespace std;
 int Minutes;
 int Type;
-cv::Mat starTrail;
-cv::Mat resultPng;
+Mat starTrail;
+Mat resultPng;
 QString InputfilePath;
 
 
@@ -35,6 +35,11 @@ MainWindow::MainWindow(QWidget *parent):
     connect(ui->startGenerate, SIGNAL(clicked()), this, SLOT(startGenerate()));
     connect(ui->pngSaveBtn, SIGNAL(clicked()), this, SLOT(savePng()));
     connect(ui->gifSaveBtn, SIGNAL(clicked()), this, SLOT(saveGif()));
+
+    connect(ui->starIImage, SIGNAL(Mouse_Move()), this, SLOT(Mouse_Move()));
+    connect(ui->starIImage, SIGNAL(Mouse_Pressed()), this, SLOT(Mouse_Pressed()));
+    connect(ui->starIImage, SIGNAL(Mouse_Release()), this, SLOT(Mouse_Relese()));
+    connect(ui->starIImage, SIGNAL(Mouse_Left()), this, SLOT(Mouse_Left()));
 }
 
 
@@ -45,7 +50,7 @@ MainWindow::~MainWindow()
 
 
 
-QPixmap MatToPixmap(cv::Mat src)
+QPixmap MatToPixmap(Mat src)
 {
     QImage::Format format=QImage::Format_Grayscale8;
     int bpp=src.channels();
@@ -70,7 +75,7 @@ Mat get_star(const Mat img, Mat& star_mask, int r, int g, int b) {       /*-----
     cv::inRange(img, lowerBound, upperBound, star_mask);
 
     // Apply the binary mask to the original image
-    cv::Mat star_result;
+    Mat star_result;
     cv::bitwise_and(img, img, star_result, star_mask);
     cv::cvtColor(star_result, star_result, COLOR_BGR2GRAY);
 
@@ -81,22 +86,22 @@ Mat get_star(const Mat img, Mat& star_mask, int r, int g, int b) {       /*-----
     std::vector<cv::Vec4i> hierarchy;
     Mat star_process = star_result.clone();
     Mat final = star_process.clone();
-    cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(9, 9));
+    Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(9, 9));
 
     // Apply opening and closing operations
-    cv::Mat openingResult, closingResult, closingResult2;
-    //cv::dilate(star_process, star_process, cv::Mat());
+    Mat openingResult, closingResult, closingResult2;
+    //cv::dilate(star_process, star_process, Mat());
     //cv::morphologyEx(star_process, openingResult, cv::MORPH_OPEN, kernel);
     cv::morphologyEx(star_process, closingResult, cv::MORPH_CLOSE, kernel);
     cv::morphologyEx(closingResult, closingResult2, cv::MORPH_CLOSE, kernel);
 
-    cv::Mat contourImage = closingResult2.clone();
+    Mat contourImage = closingResult2.clone();
     cv::findContours(closingResult2, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
     // Draw contours on the original image
 
 
-    cv::Mat mask = cv::Mat::ones(closingResult2.size(), CV_8UC1) * 255;
+    Mat mask = Mat::ones(closingResult2.size(), CV_8UC1) * 255;
     //cv::drawContours(contourImage, contours, -1, cv::Scalar(0, 255, 0), 2);
     //cout << contours.size() << endl;
     for (int i = 0; i < contours.size(); ++i) {
@@ -109,7 +114,7 @@ Mat get_star(const Mat img, Mat& star_mask, int r, int g, int b) {       /*-----
         }
 
     }
-    cv::Mat resultImage;
+    Mat resultImage;
     closingResult2.copyTo(resultImage, mask);
     //cv::imshow("Contour Image", resultImage);
     Mat threshold_resultImage;
@@ -171,6 +176,100 @@ void ImageCombine(const Mat& img, const Mat& trail_mask, const Mat& trail) {    
     // waitKey();
 }
 
+Mat hsv_kmeans_seg(Mat org_img, int k) {
+    vector<Mat> imgRGB,imgLab,imgHSV;
+    cvtColor(org_img, org_img, COLOR_BGR2Lab);
+    split(org_img, imgLab);
+
+    cvtColor(org_img, org_img, COLOR_Lab2RGB);
+    split(org_img, imgRGB);
+
+    cvtColor(org_img, org_img, COLOR_RGB2HSV);
+    split(org_img, imgHSV);
+    cvtColor(org_img, org_img, COLOR_HSV2BGR);
+
+    Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+
+    // Set the clip limit (adjust as needed)
+    clahe->setClipLimit(0.1);
+    // Apply CLAHE to the input image
+    Mat outputImage;
+    cv::Size gridSize(20, 20);  // You can change this to control the grid size
+    clahe->setTilesGridSize(gridSize);
+
+    // Apply CLAHE to the input image
+    //Mat claheImage;
+    //clahe->apply(image, claheImage);
+    for (int i = 0; i < 3; ++i) {
+        cv::medianBlur(imgLab[i], imgLab[i], 3);  // Adjust the second parameter (kernel size) as needed
+        cv::medianBlur(imgRGB[i], imgRGB[i], 3);
+        cv::medianBlur(imgHSV[i], imgHSV[i], 3);// Adjust the second parameter (kernel size) as needed
+        blur(imgLab[i], imgLab[i], cv::Size(3, 3));
+        blur(imgRGB[i], imgRGB[i], cv::Size(3, 3));
+        blur(imgHSV[i], imgHSV[i], cv::Size(3, 3));
+    }
+
+    for (int i = 0; i < 3; ++i) {
+        clahe->apply(imgLab[i], imgLab[i]);
+        clahe->apply(imgRGB[i], imgRGB[i]);
+        clahe->apply(imgHSV[i], imgHSV[i]);
+        //equalizeHist(imgLab[i], imgLab[i]);
+        //equalizeHist(imgRGB[i], imgRGB[i]);
+
+    }
+
+    int n = org_img.rows * org_img.cols;
+
+    Mat img6xN(n, 9, CV_8U);
+    for (int i = 0; i < 3; i++)
+        imgRGB[i].reshape(1, n).copyTo(img6xN.col(i));
+    for (int i = 3; i < 6; i++)
+        imgLab[i-3].reshape(1, n).copyTo(img6xN.col(i));
+    for (int i = 6; i < 9; i++)
+        imgHSV[i - 6].reshape(1, n).copyTo(img6xN.col(i));
+    img6xN.convertTo(img6xN, CV_32F);
+    Mat bestLables;
+    TermCriteria criteria(TermCriteria::EPS , 300, 0.2);
+    Mat labels;
+
+    // Apply k-means algorithm
+
+    cv::kmeans(img6xN, k, bestLables, criteria, 20, cv::KMEANS_PP_CENTERS);
+
+    bestLables = bestLables.reshape(0, org_img.rows);
+    cv::convertScaleAbs(bestLables, bestLables, int(255 / k));
+    cv::imshow("result", bestLables);
+    return bestLables;
+}
+
+vector<Point> get_star_location(Mat image) {
+    vector<Point>ans;
+    for (int i = 0; i < image.cols; i++) {
+        for (int j = 0; j < image.rows; j++) {
+            Point p;
+            if (int(image.at<uchar>(i, j)) != 0) {
+                p.x = i; p.y = j;
+                ans.push_back(p);
+            }
+        }
+    }
+    return ans;
+}
+
+Mat customFloodFill(Mat &image, int x, int y, cv::Scalar fillColor) {
+    cv::Point seedPoint(x, y);
+    int loDiff = 10;  // 低灰度差異閾值
+    int upDiff = 10;  // 高灰度差異閾值
+    int flags = 4  | (255 << 8);
+
+    Mat mask;
+    mask.create(image.rows + 2, image.cols + 2, CV_8U);
+    mask = cv::Scalar::all(0);
+
+    cv::floodFill(image, mask, seedPoint, fillColor, nullptr, cv::Scalar(loDiff), cv::Scalar(upDiff), flags);
+
+    return mask;
+}
 
 /*------------------------------------------------------------------------------------------------觸發slot------------------*/
 void MainWindow::on_uploadButton_clicked()
@@ -239,6 +338,8 @@ void MainWindow::showAbout()    //顯示關於畫面
 {
     ui->stackedWidget->setCurrentIndex(2);
 }
+/*--------------------------------------------------------------------------------------------RGB頁設定OK 生成mask 進入下一步---------*/
+
 void MainWindow::toGenerateStarTrail()
 {
     ui->stackedWidget->setCurrentIndex(4);
@@ -246,11 +347,25 @@ void MainWindow::toGenerateStarTrail()
     ui->E_starTrail->clear();
     ui->E_png->clear();
     ui->E_gif->clear();
+
+    //Mat segmentedImage前景分割;
+    // Mat segmentedImage = hsv_kmeans_seg(MatImage,8);
+
+    // vector<Point>star_location = get_star_location(star_result);
+    // //cv::cvtColor(org_img, org_img, COLOR_Lab2BGR);
+    // cv::imshow("segmentedImage_result", segmentedImage);
+    // medianBlur(segmentedImage, segmentedImage, 3);
+    // for (int i = 0; i < star_location.size(); i++) {
+    //     cout << star_location[i].x << " " << star_location[i].y << endl;
+    //     Mat mymask = customFloodFill(segmentedImage, int(star_location[i].y), int(star_location[i].x), 0);
+    // }
+    // imshow("segmentedImage_result2", segmentedImage);
+    // waitKey();
 }
 
 
 
-/*----------------------------------------------------------------------------------------------------------傳入值更改---------*/
+/*----------------------------------------------------------------------------------------------------------RGB slider更改---------*/
 void MainWindow::on_R_sliderMoved(int position)
 {
     ui->Rlabel_2->setText(QString::number(position));
@@ -312,6 +427,9 @@ void MainWindow::on_B_valueChanged(int value)
     ui->E_star->setPixmap(star);
 }
 
+
+/*----------------------------------------------------------------------------------------------------------星軌長度---------*/
+
 void MainWindow::on_TrailLengthSlider_sliderMoved(int position)
 {
     Minutes = position;
@@ -326,6 +444,8 @@ void MainWindow::on_TrailShape_currentIndexChanged(int index)
     Type = index;
 }
 
+
+/*----------------------------------------------------------------------------------------------------------開始生成總結果---------*/
 void MainWindow::startGenerate()
 {
     // ui->stackedWidget->setCurrentIndex(4);
@@ -372,6 +492,31 @@ void MainWindow::saveGif()
     // // 如果使用者取消選擇檔案，則返回
     // if (!filePath.isEmpty())
     //     imwrite(filePath.toStdString(),resultGif);
+}
+
+void MainWindow::Mouse_Pressed()
+{
+    ui->lblMouse_Current_Event->setText("Mouse Pressed!");
+    qDebug() << "ui slot:: Mouse Pressed!";
+}
+
+void MainWindow::Mouse_Relese()
+{
+    ui->lblMouse_Current_Event->setText("Mouse Released!");
+    qDebug() << "ui slot:: Mouse Released!";
+}
+
+void MainWindow::Mouse_Move()
+{
+    ui->lblMouse_Current_Pos->setText(QString("X = %1, Y = %2").arg(ui->starIImage->x).arg(ui->starIImage->y));
+    ui->lblMouse_Current_Event->setText("Mouse Moving!");
+}
+
+
+void MainWindow::Mouse_Left()
+{
+    ui->lblMouse_Current_Event->setText("Mouse Left!");
+    qDebug() << "ui slot:: Mouse Left!";
 }
 
 

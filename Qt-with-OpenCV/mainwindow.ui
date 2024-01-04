@@ -497,7 +497,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </widget>
             </item>
             <item>
-             <widget class="QLabel" name="starIImage">
+             <widget class="MouseEvent" name="starIImage">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                 <horstretch>0</horstretch>
@@ -552,11 +552,11 @@ li.checked::marker { content: &quot;\2612&quot;; }
             <property name="bottomMargin">
              <number>15</number>
             </property>
-            <item row="0" column="3">
-             <widget class="QSlider" name="R">
+            <item row="1" column="3">
+             <widget class="QSlider" name="G">
               <property name="minimumSize">
                <size>
-                <width>200</width>
+                <width>20</width>
                 <height>0</height>
                </size>
               </property>
@@ -570,7 +570,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
                <number>255</number>
               </property>
               <property name="value">
-               <number>154</number>
+               <number>150</number>
               </property>
               <property name="tracking">
                <bool>false</bool>
@@ -580,25 +580,6 @@ li.checked::marker { content: &quot;\2612&quot;; }
               </property>
               <property name="tickPosition">
                <enum>QSlider::TicksBelow</enum>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0" colspan="3">
-             <widget class="QLabel" name="Glabel">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="font">
-               <font>
-                <family>源泉圓體 M</family>
-                <pointsize>20</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>G</string>
               </property>
              </widget>
             </item>
@@ -636,6 +617,25 @@ li.checked::marker { content: &quot;\2612&quot;; }
               </property>
              </widget>
             </item>
+            <item row="0" column="0" colspan="3">
+             <widget class="QLabel" name="Rlabel">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="font">
+               <font>
+                <family>源泉圓體 M</family>
+                <pointsize>20</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>R</string>
+              </property>
+             </widget>
+            </item>
             <item row="2" column="0" colspan="3">
              <widget class="QLabel" name="Blabel">
               <property name="font">
@@ -649,11 +649,74 @@ li.checked::marker { content: &quot;\2612&quot;; }
               </property>
              </widget>
             </item>
-            <item row="1" column="3">
-             <widget class="QSlider" name="G">
+            <item row="5" column="4" colspan="3">
+             <widget class="QPushButton" name="ok">
+              <property name="font">
+               <font>
+                <family>源泉圓體 M</family>
+                <pointsize>20</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>OK</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="4" colspan="3">
+             <widget class="QLabel" name="Glabel_2">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="minimumSize">
                <size>
-                <width>20</width>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>50</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <family>源泉圓體 M</family>
+                <pointsize>20</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>150</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0" colspan="3">
+             <widget class="QLabel" name="Glabel">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="font">
+               <font>
+                <family>源泉圓體 M</family>
+                <pointsize>20</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>G</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="3">
+             <widget class="QSlider" name="R">
+              <property name="minimumSize">
+               <size>
+                <width>200</width>
                 <height>0</height>
                </size>
               </property>
@@ -667,7 +730,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
                <number>255</number>
               </property>
               <property name="value">
-               <number>150</number>
+               <number>154</number>
               </property>
               <property name="tracking">
                <bool>false</bool>
@@ -677,6 +740,13 @@ li.checked::marker { content: &quot;\2612&quot;; }
               </property>
               <property name="tickPosition">
                <enum>QSlider::TicksBelow</enum>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="3">
+             <widget class="QLabel" name="lblMouse_Current_Event">
+              <property name="text">
+               <string>TextLabel</string>
               </property>
              </widget>
             </item>
@@ -711,45 +781,6 @@ li.checked::marker { content: &quot;\2612&quot;; }
               </property>
              </widget>
             </item>
-            <item row="3" column="0" colspan="3">
-             <spacer name="verticalSpacer">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>40</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item row="3" column="3">
-             <spacer name="verticalSpacer_2">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>40</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item row="4" column="4" colspan="3">
-             <widget class="QPushButton" name="ok">
-              <property name="font">
-               <font>
-                <family>源泉圓體 M</family>
-                <pointsize>20</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>OK</string>
-              </property>
-             </widget>
-            </item>
             <item row="0" column="4" colspan="3">
              <widget class="QLabel" name="Rlabel_2">
               <property name="sizePolicy">
@@ -781,26 +812,27 @@ li.checked::marker { content: &quot;\2612&quot;; }
               </property>
              </widget>
             </item>
-            <item row="0" column="0" colspan="3">
-             <widget class="QLabel" name="Rlabel">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="font">
-               <font>
-                <family>源泉圓體 M</family>
-                <pointsize>20</pointsize>
-               </font>
-              </property>
+            <item row="3" column="3">
+             <widget class="QLabel" name="lblMouse_Current_Pos">
               <property name="text">
-               <string>R</string>
+               <string>TextLabel</string>
               </property>
              </widget>
             </item>
-            <item row="3" column="4" colspan="3">
+            <item row="3" column="0" rowspan="2" colspan="3">
+             <spacer name="verticalSpacer">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="3" column="4" rowspan="2" colspan="3">
              <spacer name="verticalSpacer_3">
               <property name="orientation">
                <enum>Qt::Vertical</enum>
@@ -815,37 +847,6 @@ li.checked::marker { content: &quot;\2612&quot;; }
                </size>
               </property>
              </spacer>
-            </item>
-            <item row="1" column="4" colspan="3">
-             <widget class="QLabel" name="Glabel_2">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="minimumSize">
-               <size>
-                <width>50</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>50</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="font">
-               <font>
-                <family>源泉圓體 M</family>
-                <pointsize>20</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>150</string>
-              </property>
-             </widget>
             </item>
            </layout>
           </item>
@@ -1452,6 +1453,13 @@ li.checked::marker { content: &quot;\2612&quot;; }
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>MouseEvent</class>
+   <extends>QLabel</extends>
+   <header location="global">mouseevent.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections>
   <connection>
