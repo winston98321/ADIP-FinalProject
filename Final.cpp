@@ -4,6 +4,7 @@
 #include <string>
 #include <Vector>
 #include<iostream>
+#include <set>
 
 
 using namespace cv;
@@ -354,9 +355,10 @@ cv::Mat kmeans_seg(const cv::Mat org_img, int k) {
 		int clusterIdx = labels.at<int>(i);
 		segmentedImage.at<uchar>(i / image.cols, i % image.cols) = centers.at<uchar>(clusterIdx);
 	}
-
+	
 	// Display the original and segmented images
 	cv::imshow("kmeans Image", segmentedImage);
+
 	return segmentedImage;
 }
 cv::Mat hsv_kmeans_seg(cv::Mat org_img, int k) {
@@ -374,10 +376,10 @@ cv::Mat hsv_kmeans_seg(cv::Mat org_img, int k) {
 	cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
 
 	// Set the clip limit (adjust as needed)
-	clahe->setClipLimit(0.1);
+	clahe->setClipLimit(0.5);
 	// Apply CLAHE to the input image
 	cv::Mat outputImage;
-	cv::Size gridSize(20, 20);  // You can change this to control the grid size
+	cv::Size gridSize(50, 50);  // You can change this to control the grid size
 	clahe->setTilesGridSize(gridSize);
 
 	// Apply CLAHE to the input image
@@ -430,6 +432,7 @@ cv::Mat hsv_kmeans_seg(cv::Mat org_img, int k) {
 	bestLables = bestLables.reshape(0, org_img.rows);
 	cv::convertScaleAbs(bestLables, bestLables, int(255 / k));
 	cv::imshow("result", bestLables);
+
 	return bestLables;
 }
 void fillContourRegion(cv::Mat img, cv::Mat star_img) {
@@ -691,7 +694,7 @@ cv::Mat my_dif_algo(cv::Mat image, int blocksize = 10) {
 
 	return image;
 }
-void sobel(cv::Mat image) {
+cv::Mat sobel(cv::Mat image) {
 	std::vector<cv::Mat> channels;
 	cv::split(image, channels);
 	cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
@@ -705,7 +708,7 @@ void sobel(cv::Mat image) {
 
 	// Apply CLAHE to the input image
 	for (int i = 0; i < 3; ++i) {
-		cv::medianBlur(channels[i], channels[i], 5);  // Adjust the second parameter (kernel size) as needed
+		cv::medianBlur(channels[i], channels[i], 9);  // Adjust the second parameter (kernel size) as needed
 		blur(channels[i], channels[i], cv::Size(3, 3));
 		clahe->apply(channels[i], channels[i]);
 	}
@@ -717,7 +720,7 @@ void sobel(cv::Mat image) {
 	for (int i = 0; i < 3; ++i) {
 		// Apply Sobel filter in X direction
 		cv::Sobel(channels[i], sobelX, CV_16S, 1, 0);
-		Canny(channels[i], edges, 5, 30);
+		cv::Canny(channels[i], edges, 5, 30);
 		// Apply Sobel filter in Y direction
 		cv::Sobel(channels[i], sobelY, CV_16S, 0, 1);
 
@@ -735,8 +738,8 @@ void sobel(cv::Mat image) {
 	// Merge the channels back into an RGB image
 	cv::Mat result = cv::Mat::zeros(image.size(), CV_8U); ; // Copy the input image to initialize the result
 	
-	for (int i = 0; i < image.rows; ++i) {
-		for (int j = 0; j < image.cols; ++j) {
+	for (int i = 0; i < image.rows; i++) {
+		for (int j = 0; j < image.cols; j++) {
 			// Find the maximum value among the three channels
 			
 			
@@ -783,11 +786,68 @@ void sobel(cv::Mat image) {
 	cv::imshow("Original Image", image);
 	cv::imshow("Sobel Filtered 255Image", result);
 
+	return result;
 
 }
+Point find_bigstar(Mat star_result, Point left_up, Point right_down) {
+	Canny(star_result, star_result, 5, 30);
+	std::vector<std::vector<cv::Point>> contours;
+	std::vector<cv::Vec4i> hierarchy;
+	Mat find_contour = star_result.clone();
+	cv::Rect ROI(left_up.x, left_up.y, right_down.x - left_up.x, right_down.y - left_up.y);
+	cv::Mat croppedImage = find_contour(ROI);
+	cv::findContours(croppedImage, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+	double area = -1;
+	int index = -1;
+	cout << "size" << contours.size() << endl;
+	for (int i = 0; i < contours.size(); i++) {
+		//cout << i << " " << area << " " << contours[i] << endl;
+		if (cv::contourArea(contours[i]) > area) {
+			area = contourArea(contours[i]);
+			index = i;
+		}
+	}
+
+	Point center(-1, -1);
+
+	if (index >= 0) {
+	
+		Moments mu = moments(contours[index]);
+		center = Point(mu.m10 / mu.m00, mu.m01 / mu.m00);
+		center.x += left_up.x;
+		center.y += left_up.y;
+	}
+	//如果沒找到直接回傳圖片中最大星星位置
+	else {
+		cv::findContours(find_contour, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+		double area = -1;
+		int index = -1;
+
+		for (int i = 0; i < contours.size(); i++) {
+			cout << i << " " << area << " " << contours[i] << endl;
+			if (cv::contourArea(contours[i]) > area) {
+				area = contourArea(contours[i]);
+				index = i;
+			}
+		}
+		
+
+		if (index >= 0) {
+
+			Moments mu = moments(contours[index]);
+			center = Point(mu.m10 / mu.m00, mu.m01 / mu.m00);
+			center.x += left_up.x;
+			center.y += left_up.y;
+		}
+	}
+
+	return center;
+}
+
 int main()
 {
-	string fileName = "./img./light_foreground_5.jpg";
+	string fileName = "./img./aurora_3.jpg";
 	Mat img = imread(fileName);
 
 	resize(img, img, Size(500, 500));
@@ -823,6 +883,7 @@ int main()
 	vector<Point>star_location = get_star_location(star_result);
 	//cv::cvtColor(org_img, org_img, COLOR_Lab2BGR);
 	cv::imshow("segmentedImage_result", segmentedImage);
+	Mat kmenas_seg = segmentedImage.clone();
 	medianBlur(segmentedImage, segmentedImage, 3);
 	for (int i = 0; i < star_location.size(); i++) {
 		cout << star_location[i].x << " " << star_location[i].y << endl;
@@ -846,11 +907,70 @@ int main()
 	cv::imshow("mymedian_segmentaed_image", my_segmentaed_image);
 	//Mat ans;
 	//ans = my_dif_algo(org_img, 10);
-	Mat gray;
+	Mat gray,th_re;
 	cv::cvtColor(org_img, gray, COLOR_BGR2Lab);
-	sobel(gray);
-	
+	th_re = sobel(gray);
+	std::map<int, int> elementCount;
+	std::map<int, int> frontCount;
 
+	// 遍歷 th_re 的每一個元素
+	for (int i = 0; i < th_re.cols; i++) {
+		for (int j = 0; j < th_re.rows; j++) {
+			if (static_cast<int>(th_re.at<uchar>(i, j)) != 255) {
+				// 將 kmenas_seg 中的元素插入到 map 中
+				int element = static_cast<int>(kmenas_seg.at<uchar>(i, j));
+				elementCount[element]++;
+			}
+			else {
+				int element = static_cast<int>(kmenas_seg.at<uchar>(i, j));
+				frontCount[element]++;
+			}
+		}
+	}
+	std::vector<int> values;
+	for (const auto& pair : frontCount) {
+		values.push_back(pair.second);
+	}
+	std::sort(values.begin(), values.end(), std::greater<int>());
+	int pair_min=999999;
+	for (const auto& pair : elementCount) {
+		if (pair.second < pair_min) {
+			pair_min = pair.second;
+		}
+		std::cout << "元素 " << pair.first << " 出現了 " << pair.second << " 次。" << std::endl;
+	}
+	for (const auto& pair : frontCount) {
+		std::cout << "元素 " << pair.first << " 出現了 " << pair.second << " 次。" << std::endl;
+	}
+	
+	for (int i = 0; i < th_re.cols; i++) {
+		for (int j = 0; j < th_re.rows; j++) {
+			auto it = elementCount.find(static_cast<int>(kmenas_seg.at<uchar>(i, j)));
+			if (pair_min > 3000) {
+				if (frontCount[static_cast<int>(kmenas_seg.at<uchar>(i, j))] < values[1]-1) {
+					kmenas_seg.at<uchar>(i, j) = 0;
+				}
+				else {
+					kmenas_seg.at<uchar>(i, j) = 255;
+				}
+			}
+			else{
+				if (it != elementCount.end()) {
+					if (elementCount[static_cast<int>(kmenas_seg.at<uchar>(i, j))] >3000 ) {
+						kmenas_seg.at<uchar>(i, j) =0;
+					}
+					else {
+						kmenas_seg.at<uchar>(i, j) = 255;
+					}
+				}
+				else {
+					kmenas_seg.at<uchar>(i, j) = 0;
+				
+				}
+				}
+		}
+	}
+	cv::imshow("kmenas_seg_bin", kmenas_seg);
 
 
 
@@ -870,8 +990,12 @@ int main()
 	//gammaTransform(hsv, Output_gamma,1.5);
 	Canny(hsv, edges, 5, 30);
 	cv::imshow("Canny Edges", edges);
-
-
+	Point left, right;
+	left.x = 20; left.y = 20;
+	right.x = 100; right.y = 100;
+	Point bigstar_pos;
+	bigstar_pos = find_bigstar(star_result, left, right);
+	
 	//imshow("Gamma Transformed Image", Output_gamma);
 	//showRGB_histogram(org_img);
 	//showgrayscale_histogram(Output_gamma);
