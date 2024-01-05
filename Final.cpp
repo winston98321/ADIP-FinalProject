@@ -790,10 +790,11 @@ cv::Mat sobel(cv::Mat image) {
 
 }
 Point find_bigstar(Mat star_result, Point left_up, Point right_down) {
-	Canny(star_result, star_result, 5, 30);
+	Mat result;
+	Canny(star_result, result, 5, 30);
 	std::vector<std::vector<cv::Point>> contours;
 	std::vector<cv::Vec4i> hierarchy;
-	Mat find_contour = star_result.clone();
+	Mat find_contour = result.clone();
 	cv::Rect ROI(left_up.x, left_up.y, right_down.x - left_up.x, right_down.y - left_up.y);
 	cv::Mat croppedImage = find_contour(ROI);
 	cv::findContours(croppedImage, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
