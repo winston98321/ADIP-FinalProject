@@ -14,6 +14,7 @@ public:
     void mouseReleaseEvent(QMouseEvent *ev) override;
     void leaveEvent(QEvent *);
     int x, y;
+    QPoint position;
 
 signals:
     void Mouse_Pressed();

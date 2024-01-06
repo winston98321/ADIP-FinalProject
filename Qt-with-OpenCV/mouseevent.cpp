@@ -11,23 +11,25 @@ void MouseEvent::mouseMoveEvent(QMouseEvent *ev)
     this->y = ev->y();
     emit Mouse_Move();
 
-    qDebug() << "signal:: mouseMoveEvent";
+    // qDebug() << "signal:: mouseMoveEvent";
 }
 void MouseEvent::mousePressEvent(QMouseEvent *ev)
 {
+    this->position = ev->pos();
     emit Mouse_Pressed();
-    qDebug() << "signal:: mousePressEvent";
+    // qDebug() << "signal:: mousePressEvent";
 
 }
 
 void MouseEvent::mouseReleaseEvent(QMouseEvent *ev)
 {
+    this->position = ev->pos();
     emit Mouse_Release();
-    qDebug() << "signal:: mouseReleaseEvent";
+    // qDebug() << "signal:: mouseReleaseEvent";
 }
 
 void MouseEvent::leaveEvent(QEvent *)
 {
     emit Mouse_Left();
-    qDebug() << "signal::leaveEvent";
+    // qDebug() << "signal::leaveEvent";
 }

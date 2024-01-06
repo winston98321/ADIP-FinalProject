@@ -441,7 +441,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
       <widget class="QWidget" name="showImageRGB">
        <layout class="QHBoxLayout" name="horizontalLayout_8">
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_14" stretch="4,1">
+         <layout class="QHBoxLayout" name="horizontalLayout_14" stretch="5,0,1">
           <property name="leftMargin">
            <number>12</number>
           </property>
@@ -449,7 +449,10 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <number>12</number>
           </property>
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_12" stretch="1,1">
+           <layout class="QHBoxLayout" name="horizontalLayout_12" stretch="0,1">
+            <property name="sizeConstraint">
+             <enum>QLayout::SetDefaultConstraint</enum>
+            </property>
             <property name="leftMargin">
              <number>6</number>
             </property>
@@ -465,7 +468,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
             <item>
              <widget class="QLabel" name="originImage">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -474,6 +477,12 @@ li.checked::marker { content: &quot;\2612&quot;; }
                <size>
                 <width>400</width>
                 <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>1080</height>
                </size>
               </property>
               <property name="mouseTracking">
@@ -499,7 +508,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
             <item>
              <widget class="MouseEvent" name="starIImage">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -508,6 +517,12 @@ li.checked::marker { content: &quot;\2612&quot;; }
                <size>
                 <width>400</width>
                 <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>1080</height>
                </size>
               </property>
               <property name="mouseTracking">
@@ -529,11 +544,18 @@ li.checked::marker { content: &quot;\2612&quot;; }
                <bool>true</bool>
               </property>
               <property name="alignment">
-               <set>Qt::AlignCenter</set>
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
               </property>
              </widget>
             </item>
            </layout>
+          </item>
+          <item>
+           <widget class="Line" name="line_2">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+           </widget>
           </item>
           <item>
            <layout class="QGridLayout" name="gridLayout_4">
@@ -570,7 +592,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
                <number>255</number>
               </property>
               <property name="value">
-               <number>150</number>
+               <number>154</number>
               </property>
               <property name="tracking">
                <bool>false</bool>
@@ -689,7 +711,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
                </font>
               </property>
               <property name="text">
-               <string>150</string>
+               <string>154</string>
               </property>
              </widget>
             </item>
@@ -730,7 +752,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
                <number>255</number>
               </property>
               <property name="value">
-               <number>154</number>
+               <number>174</number>
               </property>
               <property name="tracking">
                <bool>false</bool>
@@ -808,7 +830,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
                </font>
               </property>
               <property name="text">
-               <string>154</string>
+               <string>174</string>
               </property>
              </widget>
             </item>
@@ -888,7 +910,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
              <string notr="true">QTabBar::tab(width: 120)</string>
             </property>
             <property name="currentIndex">
-             <number>1</number>
+             <number>0</number>
             </property>
             <widget class="QWidget" name="originImage_2">
              <attribute name="title">
@@ -898,7 +920,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
               <item>
                <widget class="QLabel" name="E_origin">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
@@ -908,6 +930,15 @@ li.checked::marker { content: &quot;\2612&quot;; }
                   <width>300</width>
                   <height>0</height>
                  </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">background-color: rgb(255, 255, 255);</string>
                 </property>
                 <property name="text">
                  <string>TextLabel</string>
@@ -927,7 +958,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
               <item>
                <widget class="QLabel" name="E_frontandback">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
@@ -968,7 +999,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </size>
             </property>
             <property name="currentIndex">
-             <number>1</number>
+             <number>0</number>
             </property>
             <widget class="QWidget" name="star">
              <attribute name="title">
@@ -978,7 +1009,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
               <item>
                <widget class="QLabel" name="E_star">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
@@ -988,6 +1019,9 @@ li.checked::marker { content: &quot;\2612&quot;; }
                   <width>300</width>
                   <height>0</height>
                  </size>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">background-color: rgb(255, 255, 255);</string>
                 </property>
                 <property name="text">
                  <string>TextLabel</string>
@@ -1007,15 +1041,21 @@ li.checked::marker { content: &quot;\2612&quot;; }
               <item>
                <widget class="QLabel" name="E_starTrail">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
                 </property>
                 <property name="minimumSize">
                  <size>
-                  <width>0</width>
-                  <height>600</height>
+                  <width>400</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>16777215</height>
                  </size>
                 </property>
                 <property name="styleSheet">
@@ -1026,6 +1066,9 @@ li.checked::marker { content: &quot;\2612&quot;; }
                 </property>
                 <property name="scaledContents">
                  <bool>true</bool>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                 </property>
                </widget>
               </item>
@@ -1058,7 +1101,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
               <item>
                <widget class="QLabel" name="E_png">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
@@ -1066,8 +1109,17 @@ li.checked::marker { content: &quot;\2612&quot;; }
                 <property name="minimumSize">
                  <size>
                   <width>400</width>
-                  <height>600</height>
+                  <height>0</height>
                  </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">background-color: rgb(255, 255, 255);</string>
                 </property>
                 <property name="text">
                  <string>TextLabel</string>
@@ -1087,7 +1139,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
               <item>
                <widget class="QLabel" name="E_gif">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>

@@ -7,6 +7,9 @@
 #include <opencv2/opencv.hpp>
 #include <QLabel>
 #include <QPainter>
+#include <QGraphicsView>
+#include <QGraphicsScene>
+#include <QGraphicsPixmapItem>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -23,8 +26,10 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
     QPixmap QoriginImage;
-    cv::Mat MatImage;
+    cv::Mat MatoriginImage;
+    cv::Mat resizeOriginImage;
     cv::Mat star_result;
+
 
 
 
