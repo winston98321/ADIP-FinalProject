@@ -1004,7 +1004,22 @@ cv::Mat final_front(Mat org_img,Mat kmenas_seg) {
 	//cv::imshow("Contours without touching edges1", result);
 	return result;
 }
+void make_gif() {
+	const char* command = "magick gif/*.jpg images.gif";
 
+	// 使用 system 函數執行命令
+	int result = system(command);
+
+	// 檢查執行結果
+	if (result == 0) {
+		// 成功
+		std::cout << "GIF creation successful." << std::endl;
+	}
+	else {
+		// 失敗
+		std::cerr << "Error: Failed to create GIF." << std::endl;
+	}
+}
 int main()
 {
 	//if (cv::gpu::getCudaEnabledDeviceCount() == 0)
