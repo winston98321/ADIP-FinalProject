@@ -557,6 +557,16 @@ void ImageCombine(const Mat& img, const Mat& trail_mask, const Mat& trail, Mat& 
 	vector<cv::Mat> channels;
 	split(floatImage, channels);
 
+	cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+
+	// Set the clip limit (adjust as needed)
+	clahe->setClipLimit(0.5);
+	// Apply CLAHE to the input image
+	cv::Mat outputImage;
+	cv::Size gridSize(50, 50);  // You can change this to control the grid size
+	clahe->setTilesGridSize(gridSize);
+
+
 	// 對影像作histogram equalization
 	for (int i = 0; i < channels.size(); ++i) {
 		//cv::Mat channel8U = channels[i];
@@ -565,7 +575,8 @@ void ImageCombine(const Mat& img, const Mat& trail_mask, const Mat& trail, Mat& 
 		// 將通道轉換回 CV_32F
 		//channel8U.convertTo(channels[i], CV_32F, 1.0 / 255.0);
 
-		cv::equalizeHist(channels[i], channels[i]);
+		//cv::equalizeHist(channels[i], channels[i]);
+		clahe->apply(channels[i], channels[i]);
 	}
 
 	// 合併通道
@@ -627,25 +638,25 @@ void ImageCombine(const Mat& img, const Mat& trail_mask, const Mat& trail, Mat& 
 	imshow("result_startrail", result);
 
 	/*-------------------------------------------------------------------------------------前景疊加不行----------*/
-	for (int i = 0; i < front.rows; ++i) {
-		for (int j = 0; j < front.cols; ++j) {
-			// 取得元素值
-			int maskValue = front.at<int>(i, j);
-			
-			// 根據遮罩的像素值選擇 imgA 或 imgB 的像素值
-			if (maskValue == 255) {
-				result.at<cv::Vec3b>(i, j) = frontlayer.at<cv::Vec3b>(i, j);
-			}
-			else {
-				result.at<cv::Vec3b>(i, j) = result.at<cv::Vec3b>(i, j);
-			}
-			// 在這裡進行你的操作，例如打印元素值
-			//std::cout << "Element at (" << i << ", " << j << "): " << img << std::endl;
-		}
-	}
+	//for (int i = 0; i < front.rows; ++i) {
+	//	for (int j = 0; j < front.cols; ++j) {
+	//		// 取得元素值
+	//		int maskValue = front.at<int>(i, j);
+	//		
+	//		// 根據遮罩的像素值選擇 imgA 或 imgB 的像素值
+	//		if (maskValue == 255) {
+	//			result.at<cv::Vec3b>(i, j) = frontlayer.at<cv::Vec3b>(i, j);
+	//		}
+	//		else {
+	//			result.at<cv::Vec3b>(i, j) = result.at<cv::Vec3b>(i, j);
+	//		}
+	//		// 在這裡進行你的操作，例如打印元素值
+	//		//std::cout << "Element at (" << i << ", " << j << "): " << img << std::endl;
+	//	}
+	//}
 	/*-------------------------------------------------------------------------------------前景疊加不行----------*/
 
-	//add(result, frontlayer, result);
+	add(result, frontlayer, result);
 	imshow("result_startrail_forntlayer", result);
 
 	waitKey();
@@ -654,7 +665,7 @@ void ImageCombine(const Mat& img, const Mat& trail_mask, const Mat& trail, Mat& 
 int main()
 {
 	double START = clock();
-	string fileName = "./img./light_foreground_5.jpg";
+	string fileName = "./img./aurora_1.jpg";
 	Mat img = imread(fileName);
 
 	//resize(img, img, Size(img.cols * 0.6, img.rows * 0.6));
