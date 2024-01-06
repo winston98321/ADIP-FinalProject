@@ -1,10 +1,12 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include<opencv2/gpu/gpu.hpp>
 #include <string>
 #include <Vector>
 #include<iostream>
 #include <set>
+#include <opencv2/core.hpp>
 
 
 using namespace cv;
@@ -422,7 +424,7 @@ cv::Mat hsv_kmeans_seg(cv::Mat org_img, int k) {
 		imgHSV[i - 6].reshape(1, n).copyTo(img6xN.col(i));
 	img6xN.convertTo(img6xN, CV_32F);
 	cv::Mat bestLables;
-	TermCriteria criteria(TermCriteria::EPS , 300, 0.2);
+	TermCriteria criteria(TermCriteria::EPS , 100, 0.2);
 	Mat labels;
 
 	// Apply k-means algorithm
@@ -515,7 +517,29 @@ void myfloodFill(cv::Mat& image, int x, int y, int currColor, int newColor)
 	myfloodFill(image, x, y + 1, currColor, newColor);
 	myfloodFill(image, x, y - 1, currColor, newColor);
 }
+Mat guidedFilter(const Mat& I, const Mat& p, int r, double eps) {
+	Mat mean_I, mean_p, mean_Ip, mean_II, cov_Ip;
 
+	// Mean and covariance calculations
+	boxFilter(I, mean_I, -1, Size(r, r));
+	boxFilter(p, mean_p, -1, Size(r, r));
+	boxFilter(I.mul(p), mean_Ip, -1, Size(r, r));
+	boxFilter(I.mul(I), mean_II, -1, Size(r, r));
+
+	cov_Ip = mean_Ip - mean_I.mul(mean_p);
+
+	// Var and mean calculations
+	Mat var_I = mean_II - mean_I.mul(mean_I);
+	Mat a = cov_Ip / (var_I + eps);
+	Mat b = mean_p - a.mul(mean_I);
+
+	// Filter output calculation
+	Mat mean_a, mean_b;
+	boxFilter(a, mean_a, -1, Size(r, r));
+	boxFilter(b, mean_b, -1, Size(r, r));
+
+	return mean_a.mul(I) + mean_b;
+}
 // It mainly finds the previous color on (x, y) and
 // calls floodFill()
 void findColor(cv::Mat& image, int x, int y, int newColor)
@@ -710,21 +734,23 @@ cv::Mat sobel(cv::Mat image) {
 	for (int i = 0; i < 3; ++i) {
 		cv::medianBlur(channels[i], channels[i], 9);  // Adjust the second parameter (kernel size) as needed
 		blur(channels[i], channels[i], cv::Size(3, 3));
+		channels[i] = guidedFilter(channels[i], channels[i], 3, 0.001);
 		clahe->apply(channels[i], channels[i]);
 	}
 
 	// Apply Sobel filter to each channel
-	cv::Mat sobelX, sobelY,edges;
+	cv::Mat sobelX, sobelY,edges2;
 	cv::Mat sobelResult;
 
-	for (int i = 0; i < 3; ++i) {
+	for (int i = 0; i < 3; i++) {
 		// Apply Sobel filter in X direction
 		cv::Sobel(channels[i], sobelX, CV_16S, 1, 0);
-		cv::Canny(channels[i], edges, 5, 30);
+		cv::Canny(channels[i], edges2, 5, 30);
 		// Apply Sobel filter in Y direction
 		cv::Sobel(channels[i], sobelY, CV_16S, 0, 1);
 
 		// Convert back to 8-bit unsigned integer
+	
 		cv::convertScaleAbs(sobelX, sobelX);
 		cv::convertScaleAbs(sobelY, sobelY);
 
@@ -801,7 +827,7 @@ Point find_bigstar(Mat star_result, Point left_up, Point right_down) {
 
 	double area = -1;
 	int index = -1;
-	cout << "size" << contours.size() << endl;
+	
 	for (int i = 0; i < contours.size(); i++) {
 		//cout << i << " " << area << " " << contours[i] << endl;
 		if (cv::contourArea(contours[i]) > area) {
@@ -826,7 +852,7 @@ Point find_bigstar(Mat star_result, Point left_up, Point right_down) {
 		int index = -1;
 
 		for (int i = 0; i < contours.size(); i++) {
-			cout << i << " " << area << " " << contours[i] << endl;
+			//cout << i << " " << area << " " << contours[i] << endl;
 			if (cv::contourArea(contours[i]) > area) {
 				area = contourArea(contours[i]);
 				index = i;
@@ -845,9 +871,32 @@ Point find_bigstar(Mat star_result, Point left_up, Point right_down) {
 
 	return center;
 }
+void removeContoursTouchingImageEdges(std::vector<std::vector<cv::Point>>& contours, cv::Size imageSize) {
+	std::vector<std::vector<cv::Point>> validContours;
+
+	for (const auto& contour : contours) {
+		bool isTouchingEdge = false;
+
+		for (const auto& point : contour) {
+			// Check if the point is near the image edge (e.g., within a certain distance)
+			if (point.x < 5 || point.x > imageSize.width - 6 || point.y < 5 || point.y > imageSize.height - 6) {
+				isTouchingEdge = true;
+				break;
+			}
+		}
+
+		if (!isTouchingEdge) {
+			validContours.push_back(contour);
+		}
+	}
+
+	contours = validContours;
+}
 
 int main()
 {
+	if (cv::gpu::getCudaEnabledDeviceCount() == 0)
+		printf("NO CUDA\n");
 	string fileName = "./img./aurora_3.jpg";
 	Mat img = imread(fileName);
 
@@ -887,8 +936,8 @@ int main()
 	Mat kmenas_seg = segmentedImage.clone();
 	medianBlur(segmentedImage, segmentedImage, 3);
 	for (int i = 0; i < star_location.size(); i++) {
-		cout << star_location[i].x << " " << star_location[i].y << endl;
-		Mat mymask = customFloodFill(segmentedImage, int(star_location[i].y), int(star_location[i].x), 0);
+		//cout << star_location[i].x << " " << star_location[i].y << endl;
+		Mat mymask = customFloodFill(segmentedImage, int(star_location[i].x), int(star_location[i].y), 0);
 	}
 
 	cv::imshow("segmentedImage_result2", segmentedImage);
@@ -937,13 +986,16 @@ int main()
 	for (const auto& pair : elementCount) {
 		if (pair.second < pair_min) {
 			pair_min = pair.second;
+			
 		}
-		std::cout << "元素 " << pair.first << " 出現了 " << pair.second << " 次。" << std::endl;
-	}
-	for (const auto& pair : frontCount) {
+		
 		std::cout << "元素 " << pair.first << " 出現了 " << pair.second << " 次。" << std::endl;
 	}
 	
+	for (const auto& pair : frontCount) {
+		std::cout << "元素 " << pair.first << " 出現了 " << pair.second << " 次。" << std::endl;
+	}
+
 	for (int i = 0; i < th_re.cols; i++) {
 		for (int j = 0; j < th_re.rows; j++) {
 			auto it = elementCount.find(static_cast<int>(kmenas_seg.at<uchar>(i, j)));
@@ -951,9 +1003,15 @@ int main()
 				if (frontCount[static_cast<int>(kmenas_seg.at<uchar>(i, j))] < values[1]-1) {
 					kmenas_seg.at<uchar>(i, j) = 0;
 				}
+
 				else {
-					kmenas_seg.at<uchar>(i, j) = 255;
+					
+						kmenas_seg.at<uchar>(i, j) = 255;
+					
+					
+					
 				}
+					
 			}
 			else{
 				if (it != elementCount.end()) {
@@ -974,23 +1032,49 @@ int main()
 	cv::imshow("kmenas_seg_bin", kmenas_seg);
 
 
-
-	/*
-	Mat hsi_img = RGB2HSI(img);
-	Mat solo_img;
-	extractChannel(hsi_img, solo_img, 0);*/
-
-	// Apply Canny edge detection to the intensity component
-
 	Mat edges;
 
-	Mat hsv= org_img;
+	Mat hsv= kmenas_seg;
 	//cvtColor(org_img, hsv, COLOR_BGR2GRAY);
-	GaussianBlur(hsv, hsv, cv::Size(5, 5), 1.5, 1.5);
-	Mat Output_gamma;
-	//gammaTransform(hsv, Output_gamma,1.5);
+
 	Canny(hsv, edges, 5, 30);
 	cv::imshow("Canny Edges", edges);
+	std::vector<std::vector<cv::Point>> contours;
+	Mat grayy = kmenas_seg.clone();
+	cv::findContours(grayy, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+	
+	// Specify the image size
+	cv::Size imageSize = kmenas_seg.size();
+
+	// Remove contours touching image edges
+	removeContoursTouchingImageEdges(contours, imageSize);
+	for (auto c : contours) {
+		cout << "contour" << c << endl;
+	}
+	// Draw remaining contours on the original image
+	cv::Mat result = kmenas_seg.clone();
+	//cv::drawContours(result, contours, -1, (0, 255, 0), 5);
+	
+	for (size_t i = 0; i < contours.size(); i++) {
+		cv::drawContours(result, contours, int(i), Scalar(0), -1, 8);
+	}
+	cv::imshow("Contours without touching edges1", result);
+	vector<Point> fillvector;
+	Point test1; test1.x = 20; test1.y = org_img.rows-30;
+	Point test2; test2.x = org_img.cols-30; test2.y = org_img.rows - 30;
+	fillvector.push_back(test1);
+	fillvector.push_back(test2);
+	Mat mymask;
+	for (int i = 0; i < 2; i++) {
+		//cout << star_location[i].x << " " << star_location[i].y << endl;
+		mymask = customFloodFill(result, int(fillvector[i].x), int(fillvector[i].y), 255);
+		
+	}
+
+	cv::imshow("Contours without mymask edges", mymask);
+	// Display the result
+	cv::imshow("Contours without touching edges", result);
+
 	Point left, right;
 	left.x = 20; left.y = 20;
 	right.x = 100; right.y = 100;

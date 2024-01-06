@@ -8,19 +8,19 @@ def nothing(x):
 #aurora_1
 #foreground_1
 #light_foreground_1
-img_original=cv2.imread('./img./aurora_3.jpg')
+img_original=cv2.imread('./img./aurora_2.jpg')
 #颜色空间的转换
 img_original = cv2.resize(img_original, (500, 500))
-img_hsv=cv2.cvtColor(img_original,cv2.COLOR_BGR2LAB)
+img_hsv=cv2.cvtColor(img_original,cv2.COLOR_BGR2HSV)
 #新建窗口
 cv2.namedWindow(winName)
 #新建6个滑动条，表示颜色范围的上下边界，这里滑动条的初始化位置即为黄色的颜色范围
-cv2.createTrackbar('LowerbH',winName,174,255,nothing)
-cv2.createTrackbar('LowerbS',winName,159,255,nothing)
-cv2.createTrackbar('LowerbV',winName,60,255,nothing)
-cv2.createTrackbar('UpperbH',winName,255,255,nothing)
-cv2.createTrackbar('UpperbS',winName,255,255,nothing)
-cv2.createTrackbar('UpperbV',winName,255,255,nothing)
+cv2.createTrackbar('LowerbH',winName,86,255,nothing)
+cv2.createTrackbar('LowerbS',winName,96,255,nothing)
+cv2.createTrackbar('LowerbV',winName,40,255,nothing)
+cv2.createTrackbar('UpperbH',winName,163,255,nothing)
+cv2.createTrackbar('UpperbS',winName,160,255,nothing)
+cv2.createTrackbar('UpperbV',winName,123,255,nothing)
 #174,159,0
 #77,68,206
 while(1):
