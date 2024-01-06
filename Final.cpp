@@ -1,7 +1,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include<opencv2/gpu/gpu.hpp>
+//#include<opencv2/gpu/gpu.hpp>
 #include <string>
 #include <Vector>
 #include<iostream>
@@ -778,7 +778,7 @@ cv::Mat sobel(cv::Mat image) {
 	cv::threshold(result, result, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
 	cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(7, 7));
 	cv::Mat kernel3 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3));
-	cv::imshow("SobelORG Image", result);
+	//cv::imshow("SobelORG Image", result);
 	// Apply opening and closing operations
 	cv::Mat openingResult, closingResult, closingResult2;
 	//cv::dilate(star_process, star_process, cv::Mat());
@@ -809,8 +809,8 @@ cv::Mat sobel(cv::Mat image) {
 	cv::morphologyEx(result, result, cv::MORPH_CLOSE, kernel2);
 	
 	// Display the original and filtered images
-	cv::imshow("Original Image", image);
-	cv::imshow("Sobel Filtered 255Image", result);
+	//cv::imshow("Original Image", image);
+	//cv::imshow("Sobel Filtered 255Image", result);
 
 	return result;
 
@@ -876,43 +876,145 @@ void removeContoursTouchingImageEdges(std::vector<std::vector<cv::Point>>& conto
 
 	for (const auto& contour : contours) {
 		bool isTouchingEdge = false;
+		bool isupedge = false;
 
 		for (const auto& point : contour) {
 			// Check if the point is near the image edge (e.g., within a certain distance)
-			if (point.x < 5 || point.x > imageSize.width - 6 || point.y < 5 || point.y > imageSize.height - 6) {
+			if (point.x < 5 || point.x > imageSize.width - 6 ||  point.y > imageSize.height/2) {
 				isTouchingEdge = true;
 				break;
 			}
+			/*
+			if (point.y < int(imageSize.height)/4) {
+				//cout << "imagesize" << imageSize.height << endl;
+				isupedge = true;
+				break;
+			}*/
 		}
 
 		if (!isTouchingEdge) {
 			validContours.push_back(contour);
 		}
+		
 	}
 
 	contours = validContours;
 }
+cv::Mat final_front(Mat org_img,Mat kmenas_seg) {
+	Mat gray, th_re;
+	cv::cvtColor(org_img, gray, COLOR_BGR2Lab);
+	th_re = sobel(gray);
+
+	std::map<int, int> elementCount;
+	std::map<int, int> frontCount;
+
+	// 遍歷 th_re 的每一個元素
+	for (int i = 0; i < th_re.cols; i++) {
+		for (int j = 0; j < th_re.rows; j++) {
+			if (static_cast<int>(th_re.at<uchar>(i, j)) != 255) {
+				int element = static_cast<int>(kmenas_seg.at<uchar>(i, j));
+				elementCount[element]++;
+			}
+			else {
+				int element = static_cast<int>(kmenas_seg.at<uchar>(i, j));
+				frontCount[element]++;
+			}
+		}
+	}
+	std::vector<int> values;
+	for (const auto& pair : frontCount) {
+		values.push_back(pair.second);
+	}
+	std::sort(values.begin(), values.end(), std::greater<int>());
+	int pair_min = 999999;
+	for (const auto& pair : elementCount) {
+		if (pair.second < pair_min) {
+			pair_min = pair.second;
+
+		}
+
+		std::cout << "元素 " << pair.first << " 出現了 " << pair.second << " 次。" << std::endl;
+	}
+
+	for (const auto& pair : frontCount) {
+		std::cout << "元素 " << pair.first << " 出現了 " << pair.second << " 次。" << std::endl;
+	}
+
+	for (int i = 0; i < th_re.cols; i++) {
+		for (int j = 0; j < th_re.rows; j++) {
+			auto it = elementCount.find(static_cast<int>(kmenas_seg.at<uchar>(i, j)));
+			if (pair_min > 3000) {
+				if (frontCount[static_cast<int>(kmenas_seg.at<uchar>(i, j))] < values[1] - 1) {
+					kmenas_seg.at<uchar>(i, j) = 0;
+				}
+
+				else {
+					kmenas_seg.at<uchar>(i, j) = 255;
+				}
+
+			}
+			else {
+				if (it != elementCount.end()) {
+					if (elementCount[static_cast<int>(kmenas_seg.at<uchar>(i, j))] > 3000) {
+						kmenas_seg.at<uchar>(i, j) = 0;
+					}
+					else {
+						kmenas_seg.at<uchar>(i, j) = 255;
+					}
+				}
+				else {
+					kmenas_seg.at<uchar>(i, j) = 0;
+
+				}
+			}
+		}
+	}
+	//cv::imshow("kmenas_seg_bin", kmenas_seg);
+
+
+	Mat edges;
+	std::vector<std::vector<cv::Point>> contours;
+	Mat grayy = kmenas_seg.clone();
+	//cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(12, 12));
+
+	// Apply opening and closing operations
+	//cv::Mat closingResult, closingResult2;
+	//cv::dilate(star_process, star_process, cv::Mat());
+	//cv::morphologyEx(star_process, openingResult, cv::MORPH_OPEN, kernel);
+	//cv::morphologyEx(grayy, closingResult, cv::MORPH_CLOSE, kernel);
+	//cv::morphologyEx(closingResult, closingResult, cv::MORPH_CLOSE, kernel);
+	//cv::morphologyEx(closingResult, closingResult, cv::MORPH_CLOSE, kernel);
+	//cv::imshow("closing  edges1", grayy);
+	Mat process = grayy.clone();
+	cv::findContours(process, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+	// Specify the image size
+	cv::Size imageSize = kmenas_seg.size();
+
+	// Remove contours touching image edges
+	removeContoursTouchingImageEdges(contours, imageSize);
+
+	// Draw remaining contours on the original image
+	cv::Mat result = grayy.clone();
+	//cv::drawContours(result, contours, -1, (0, 255, 0), 5);
+	//cv::imshow("closing  edges2", result);
+	for (size_t i = 0; i < contours.size(); i++) {
+		cv::drawContours(result, contours, int(i), Scalar(0), -1, 8);
+	}
+	//cv::imshow("Contours without touching edges1", result);
+	return result;
+}
 
 int main()
 {
-	if (cv::gpu::getCudaEnabledDeviceCount() == 0)
-		printf("NO CUDA\n");
-	string fileName = "./img./aurora_3.jpg";
+	//if (cv::gpu::getCudaEnabledDeviceCount() == 0)
+	//	printf("NO CUDA\n");
+	string fileName = "./img./aurora_2.jpg";
 	Mat img = imread(fileName);
 
 	resize(img, img, Size(500, 500));
 	Mat org_img = img;
 	cv::imshow("open", img);
-
-	cv::imshow("test Image", org_img);
-	//Mat element = getStructuringElement(MORPH_ELLIPSE, Size(12, 12));
-	//morphologyEx(img, img, MORPH_OPEN, element);
-	//Mat negativeImg = Mat::zeros(img.size(), img.type());
-	//toNegative(img, negativeImg);
-	//Mat LogImg = Mat::zeros(img.size(), img.type());
-
-	////imgLog(img, LogImg);
-	//histogram(img);
 
 	int blocksize = 10;
 	int gridWidth = img.cols / blocksize;
@@ -929,136 +1031,61 @@ int main()
 
 	//Mat segmentedImage;
 	Mat segmentedImage = hsv_kmeans_seg(org_img,8);
-	
-	vector<Point>star_location = get_star_location(star_result);
-	//cv::cvtColor(org_img, org_img, COLOR_Lab2BGR);
-	cv::imshow("segmentedImage_result", segmentedImage);
 	Mat kmenas_seg = segmentedImage.clone();
+	vector<Point>star_location = get_star_location(star_result);//所有星星位置，my median演算法中有用到
+	//cv::cvtColor(org_img, org_img, COLOR_Lab2BGR);
+	//最終取得前景的演算法
+	Mat front;
+	front = final_front(org_img, kmenas_seg);
+	cv::imshow("final front ", front);
+
+	cv::imshow("segmentedImage_result", segmentedImage);
+	
+
+	//cv::imshow("segmentedImage_result2", segmentedImage);
+	//
+	//
+	// 
+	// 
+	// 
+	// 
+	// 2024/1/6
+	// 
+	// 
+	// 
+	// 這下面是垃圾可以不用看 :(((
+	// 
+	// 
+	// 
+	// 
+	//
+	// 
+	// 
+	// 
+	// 
+	// 
+	// 
+	// 
+	// 
+	// 
+	//  
+	//fillContourRegion(segmentedImage, star_result);
 	medianBlur(segmentedImage, segmentedImage, 3);
 	for (int i = 0; i < star_location.size(); i++) {
 		//cout << star_location[i].x << " " << star_location[i].y << endl;
 		Mat mymask = customFloodFill(segmentedImage, int(star_location[i].x), int(star_location[i].y), 0);
 	}
+	
 
-	cv::imshow("segmentedImage_result2", segmentedImage);
-	//
-	//
-	// 
-	// 
-	// 這下面目前是垃圾可以不用看 :(((
-	// 
-	// 
-	// 
-	// 
-	// 
-	//fillContourRegion(segmentedImage, star_result);
 	Mat my_segmentaed_image;
 	my_segmentaed_image = my_median_algo(segmentedImage, star_mask, 9);
 	cv::imshow("mymedian_segmentaed_image", my_segmentaed_image);
-	//Mat ans;
-	//ans = my_dif_algo(org_img, 10);
-	Mat gray,th_re;
-	cv::cvtColor(org_img, gray, COLOR_BGR2Lab);
-	th_re = sobel(gray);
-	std::map<int, int> elementCount;
-	std::map<int, int> frontCount;
 
-	// 遍歷 th_re 的每一個元素
-	for (int i = 0; i < th_re.cols; i++) {
-		for (int j = 0; j < th_re.rows; j++) {
-			if (static_cast<int>(th_re.at<uchar>(i, j)) != 255) {
-				// 將 kmenas_seg 中的元素插入到 map 中
-				int element = static_cast<int>(kmenas_seg.at<uchar>(i, j));
-				elementCount[element]++;
-			}
-			else {
-				int element = static_cast<int>(kmenas_seg.at<uchar>(i, j));
-				frontCount[element]++;
-			}
-		}
-	}
-	std::vector<int> values;
-	for (const auto& pair : frontCount) {
-		values.push_back(pair.second);
-	}
-	std::sort(values.begin(), values.end(), std::greater<int>());
-	int pair_min=999999;
-	for (const auto& pair : elementCount) {
-		if (pair.second < pair_min) {
-			pair_min = pair.second;
-			
-		}
-		
-		std::cout << "元素 " << pair.first << " 出現了 " << pair.second << " 次。" << std::endl;
-	}
+
 	
-	for (const auto& pair : frontCount) {
-		std::cout << "元素 " << pair.first << " 出現了 " << pair.second << " 次。" << std::endl;
-	}
-
-	for (int i = 0; i < th_re.cols; i++) {
-		for (int j = 0; j < th_re.rows; j++) {
-			auto it = elementCount.find(static_cast<int>(kmenas_seg.at<uchar>(i, j)));
-			if (pair_min > 3000) {
-				if (frontCount[static_cast<int>(kmenas_seg.at<uchar>(i, j))] < values[1]-1) {
-					kmenas_seg.at<uchar>(i, j) = 0;
-				}
-
-				else {
-					
-						kmenas_seg.at<uchar>(i, j) = 255;
-					
-					
-					
-				}
-					
-			}
-			else{
-				if (it != elementCount.end()) {
-					if (elementCount[static_cast<int>(kmenas_seg.at<uchar>(i, j))] >3000 ) {
-						kmenas_seg.at<uchar>(i, j) =0;
-					}
-					else {
-						kmenas_seg.at<uchar>(i, j) = 255;
-					}
-				}
-				else {
-					kmenas_seg.at<uchar>(i, j) = 0;
-				
-				}
-				}
-		}
-	}
-	cv::imshow("kmenas_seg_bin", kmenas_seg);
 
 
-	Mat edges;
-
-	Mat hsv= kmenas_seg;
-	//cvtColor(org_img, hsv, COLOR_BGR2GRAY);
-
-	Canny(hsv, edges, 5, 30);
-	cv::imshow("Canny Edges", edges);
-	std::vector<std::vector<cv::Point>> contours;
-	Mat grayy = kmenas_seg.clone();
-	cv::findContours(grayy, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-	
-	// Specify the image size
-	cv::Size imageSize = kmenas_seg.size();
-
-	// Remove contours touching image edges
-	removeContoursTouchingImageEdges(contours, imageSize);
-	for (auto c : contours) {
-		cout << "contour" << c << endl;
-	}
-	// Draw remaining contours on the original image
-	cv::Mat result = kmenas_seg.clone();
-	//cv::drawContours(result, contours, -1, (0, 255, 0), 5);
-	
-	for (size_t i = 0; i < contours.size(); i++) {
-		cv::drawContours(result, contours, int(i), Scalar(0), -1, 8);
-	}
-	cv::imshow("Contours without touching edges1", result);
+	/*
 	vector<Point> fillvector;
 	Point test1; test1.x = 20; test1.y = org_img.rows-30;
 	Point test2; test2.x = org_img.cols-30; test2.y = org_img.rows - 30;
@@ -1073,7 +1100,7 @@ int main()
 
 	cv::imshow("Contours without mymask edges", mymask);
 	// Display the result
-	cv::imshow("Contours without touching edges", result);
+	cv::imshow("Contours without touching edges", result);*/
 
 	Point left, right;
 	left.x = 20; left.y = 20;
