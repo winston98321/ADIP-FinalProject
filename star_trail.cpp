@@ -1,4 +1,4 @@
-#include <opencv2/opencv.hpp>
+ï»¿#include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <string>
@@ -13,51 +13,74 @@
 //#include<opencv2/gpu/gpu.hpp>
 
 #define MY_PI 3.1415
-#define TrailStyle 1
-#define minutes 360
+#define TrailStyle 3
+#define minutes 600
 using namespace cv;
 using namespace std;
 
+void gammaTransform(const cv::Mat& input_image, cv::Mat& output_image, double gamma) {
+	// Make sure the input image is not empty
+	if (input_image.empty()) {
+		std::cerr << "Error: Input image is empty." << std::endl;
+		return;
+	}
+
+	// Create a copy of the input image to avoid modifying the original
+	output_image = input_image.clone();
+
+	// Normalize the pixel values to the range [0, 1]
+	output_image.convertTo(output_image, CV_32F, 1.0 / 255.0);
+
+	// Apply gamma transformation
+	cv::pow(output_image, gamma, output_image);
+
+	// Rescale the pixel values back to the range [0, 255]
+	output_image *= 255.0;
+	output_image.convertTo(output_image, CV_8U);
+}
 
 Mat StarTrail(Point center, const Mat& img, Mat& result) {
 	//Point center(img.cols / 2, img.rows / 2);
 	Mat rot_mat;
-
-	if (TrailStyle == 1) {
-		rot_mat = getRotationMatrix2D(center, 0.25, 1.0);
-	}
-	else if (TrailStyle == 2) {
-		rot_mat = getRotationMatrix2D(center, 0.8, 0.995);
-	}
-	else if (TrailStyle == 3) {
-		rot_mat = getRotationMatrix2D(center, 0, 0.995);
-	}
-
 	Size img_size(img.cols, img.rows);
+
 	//int times = minutes / ;
 	Mat temp;
-	threshold(img, img, 0, 255, THRESH_BINARY);
+	threshold(img, img, 0, 255, THRESH_BINARY | THRESH_OTSU);
 
-	warpAffine(img, temp, rot_mat, img_size, INTER_LINEAR);	//Âà²Ä¤@¤U
+	cout << "temp's size" << temp.size() << endl;
+	cout << "result's size" << result.size() << endl;
 
-	// ¨Ï¥ÎBORDER_CONSTANT¡A¨Ã«ü©wÃä¬ÉÃC¦â¬°¶Â¦â
-	for (int i = 0; i < minutes; i++) {
-		warpAffine(temp, temp, rot_mat, img_size, INTER_LINEAR);
-		bitwise_or(temp, result, result);
+
+	// ä½¿ç”¨BORDER_CONSTANTï¼Œä¸¦æŒ‡å®šé‚Šç•Œé¡è‰²ç‚ºé»‘è‰²
+
+	double scale = 0.99;
+	//for (int i = 0; i < minutes; i++) {
+	for (double radius = 0; radius < minutes / 60 * 15; radius += 1) {
+		if (TrailStyle == 1) {
+			rot_mat = getRotationMatrix2D(center, radius, 1.0);
+		}
+		else if (TrailStyle == 2) {
+			rot_mat = getRotationMatrix2D(center, radius, scale);
+		}
+		else if (TrailStyle == 3) {
+			rot_mat = getRotationMatrix2D(center, 0, scale);
+		}
+		warpAffine(img, temp, rot_mat, img_size);	//è½‰ç¬¬ä¸€ä¸‹
+		//warpAffine(temp, temp, rot_mat, img_size);
+		//threshold(temp, temp, 0, 255, THRESH_BINARY | THRESH_OTSU);
+		//bitwise_or(temp, result, result);
+		//add(temp, result, result);
+		addWeighted(result, 1.0, temp, 0.8, 0.0, result);
+		scale *= 0.99;
 	}
 
-
-	GaussianBlur(result, result, Size(3, 3), 0.2, 0.2);
+	GaussianBlur(result, result, Size(3, 3), 0.5,0.5);
 	cvtColor(result, result, COLOR_GRAY2BGR);
 	cout << "Star Trail's type is: " << result.type() << endl;
-
-	Mat mask;
-	threshold(result, mask, 220, 255, THRESH_BINARY_INV);
-	cout << "mask's type is: " << mask.type() << endl;
-
 	imshow("Star Trail", result);
 
-	return mask;
+	return result;
 }
 
 
@@ -159,13 +182,9 @@ cv::Mat hsv_kmeans_seg(cv::Mat org_img, int k) {
 
 	}
 
-
-
 	//for (int i = 0; i < 3; ++i) {
 	//	blur(imgRGB[i], imgRGB[i], cv::Size(3,3));
 	//}
-
-
 
 	int n = org_img.rows * org_img.cols;
 
@@ -235,8 +254,8 @@ cv::Mat customFloodFill(cv::Mat& image, int x, int y, cv::Scalar fillColor) {
 
 
 	cv::Point seedPoint(x, y);
-	int loDiff = 10;  // §C¦Ç«×®t²§ìH­È
-	int upDiff = 10;  // °ª¦Ç«×®t²§ìH­È
+	int loDiff = 10;  // ä½ç°åº¦å·®ç•°é–¾å€¼
+	int upDiff = 10;  // é«˜ç°åº¦å·®ç•°é–¾å€¼
 
 	int flags = 4 | (255 << 8);
 
@@ -320,16 +339,16 @@ cv::Mat mySobel(cv::Mat image) {
 	//cv::imshow("Sobel Filtered Image", result);
 
 	for (int col = 0; col < result.cols; col++) {
-		int max_row = 9999;  // ªì©l¤Æ³Ì°ª?ªº¦æ?
+		int max_row = 9999;  // åˆå§‹åŒ–æœ€é«˜?çš„è¡Œ?
 
-		// §ä¨ì?«e¦Cªº³Ì°ª?
+		// æ‰¾åˆ°?å‰åˆ—çš„æœ€é«˜?
 		for (int row = 0; row < result.rows; row++) {
 			if (static_cast<int>(result.at<uchar>(row, col)) >= 10) {
 				max_row = min(row, max_row);
 			}
 		}
 
-		// ?³Ì°ª?¤U­±ªº¹³¯À?¸m?255
+		// ?æœ€é«˜?ä¸‹é¢çš„åƒç´ ?ç½®?255
 		for (int row = max_row; row < result.rows; row++) {
 			result.at<uchar>(row, col) = 255;
 		}
@@ -376,7 +395,7 @@ Point find_bigstar(Mat star_result, Point left_up, Point right_down) {
 		center.x += left_up.x;
 		center.y += left_up.y;
 	}
-	//¦pªG¨S§ä¨ìª½±µ¦^¶Ç¹Ï¤ù¤¤³Ì¤j¬P¬P¦ì¸m
+	//å¦‚æœæ²’æ‰¾åˆ°ç›´æ¥å›å‚³åœ–ç‰‡ä¸­æœ€å¤§æ˜Ÿæ˜Ÿä½ç½®
 	else {
 		cv::findContours(find_contour, contours1, hierarchy1, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 		double area = -1;
@@ -400,6 +419,18 @@ Point find_bigstar(Mat star_result, Point left_up, Point right_down) {
 	return center;
 }
 
+void histogramMapping(const cv::Mat& input_image, cv::Mat& output_image, int range_min, int range_max) {
+	// Convert the input image to grayscale if it is a color image
+	cv::Mat gray_image = input_image.clone();
+	equalizeHist(input_image, gray_image);
+	for (int i = 0; i < input_image.rows; i++) {
+		for (int j = 0; j < input_image.cols; j++) {
+			//output_image.at<uchar>(i, j) = range_min + (range_max - range_min) * (static_cast<double>(gray_image.at<uchar>(i, j)) / 255);
+		}
+	}
+	output_image = gray_image.clone();
+
+}
 
 void removeContoursTouchingImageEdges(std::vector<std::vector<cv::Point>>& contours, cv::Size imageSize) {
 	std::vector<std::vector<cv::Point>> validContours;
@@ -431,7 +462,22 @@ void removeContoursTouchingImageEdges(std::vector<std::vector<cv::Point>>& conto
 	contours = validContours;
 }
 
+void make_gif() {
+	const char* command = "magick gif/*.jpg images.gif";
+	//convert - resize 768x576 gif/*.jpg images.gif
+	// ä½¿ç”¨ system å‡½æ•¸åŸ·è¡Œå‘½ä»¤
+	int result = system(command);
 
+	// æª¢æŸ¥åŸ·è¡Œçµæœ
+	if (result == 0) {
+		// æˆåŠŸ
+		std::cout << "GIF creation successful." << std::endl;
+	}
+	else {
+		// å¤±æ•—
+		std::cerr << "Error: Failed to create GIF." << std::endl;
+	}
+}
 cv::Mat final_front(Mat org_img, Mat kmenas_seg) {
 	Mat gray, th_re;
 	cv::cvtColor(org_img, gray, COLOR_BGR2Lab);
@@ -440,7 +486,7 @@ cv::Mat final_front(Mat org_img, Mat kmenas_seg) {
 	std::map<int, int> elementCount;
 	std::map<int, int> frontCount;
 
-	// ¹M¾ú th_re ªº¨C¤@­Ó¤¸¯À
+	// éæ­· th_re çš„æ¯ä¸€å€‹å…ƒç´ 
 	for (int i = 0; i < th_re.cols; i++) {
 		for (int j = 0; j < th_re.rows; j++) {
 			if (static_cast<int>(th_re.at<uchar>(i, j)) != 255) {
@@ -465,11 +511,11 @@ cv::Mat final_front(Mat org_img, Mat kmenas_seg) {
 
 		}
 
-		std::cout << "¤¸¯À " << pair.first << " ¥X²{¤F " << pair.second << " ¦¸¡C" << std::endl;
+		std::cout << "å…ƒç´  " << pair.first << " å‡ºç¾äº† " << pair.second << " æ¬¡ã€‚" << std::endl;
 	}
 
 	for (const auto& pair : frontCount) {
-		std::cout << "¤¸¯À " << pair.first << " ¥X²{¤F " << pair.second << " ¦¸¡C" << std::endl;
+		std::cout << "å…ƒç´  " << pair.first << " å‡ºç¾äº† " << pair.second << " æ¬¡ã€‚" << std::endl;
 	}
 
 	for (int i = 0; i < th_re.cols; i++) {
@@ -537,139 +583,93 @@ cv::Mat final_front(Mat org_img, Mat kmenas_seg) {
 	return result;
 }
 
-void ImageCombine(const Mat& img, const Mat& trail_mask, const Mat& trail, Mat& front) {
-	cout << "§Ú¦bImageCombine" << endl;
-	cout << "trail_mask " << trail_mask.type() << endl;
-	cout << "img " << img.type() << endl;
-	cout << "trail " << trail.type() << endl;
-	cout << "front " << front.type() << endl;
-	imshow("«e´ºª«¥ó", front);
 
+Mat clahe_front(const Mat& floatImage, const Mat& front) {
+	vector<cv::Mat> channels, org_channels;
+	Mat org_img = floatImage.clone();
+	split(floatImage, channels);
+	split(org_img, org_channels);
+	cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+	std::vector<cv::Mat> in_channels(channels.size());
+	// Set the clip limit (adjust as needed)
+	clahe->setClipLimit(0.8);
+	// Apply CLAHE to the input image
+	cv::Mat outputImage;
+	cv::Size gridSize(12, 12);  // You can change this to control the grid size
+	clahe->setTilesGridSize(gridSize);
 
-	bitwise_and(img, trail_mask, trail_mask);	//«Ø¥ß¾B¸nÅı¬P­y§ó°®²b
-	imshow("ROI", trail_mask);
-	//waitKey();
+	// å°å½±åƒä½œhistogram equalization
+	for (int i = 0; i < channels.size(); i++) {
+		in_channels[i] = channels[i].clone();
+		clahe->apply(in_channels[i], channels[i]);
 
+		//histogramMapping(in_channels[i], channels[i],150,255);
+	}
+	for (int i = 0; i < front.rows; i++) {
+		for (int j = 0; j < front.cols; j++) {
+			int maskValue = static_cast<int>(front.at<uchar>(i, j));
+
+			for (int ch = 0; ch < channels.size(); ch++) {
+				if (maskValue == 0) {
+					channels[ch].at<uchar>(i, j) = org_channels[ch].at<uchar>(i, j);
+				}
+			}
+		}
+	}
+	merge(channels, floatImage);
+
+	return floatImage;
+}
+
+Mat ImageCombine(const Mat& img, const Mat& trail, const Mat& front) {
 
 	Mat floatImage = img.clone();/*
 	floatImage.convertTo(floatImage, CV_32F);
 	normalize(floatImage, floatImage, 0.0, 1.0, cv::NORM_MINMAX, CV_32F);*/
-	vector<cv::Mat> channels;
-	split(floatImage, channels);
-
-	cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
-
-	// Set the clip limit (adjust as needed)
-	clahe->setClipLimit(0.5);
-	// Apply CLAHE to the input image
-	cv::Mat outputImage;
-	cv::Size gridSize(50, 50);  // You can change this to control the grid size
-	clahe->setTilesGridSize(gridSize);
 
 
-	// ¹ï¼v¹³§@histogram equalization
-	for (int i = 0; i < channels.size(); ++i) {
-		//cv::Mat channel8U = channels[i];
-		//channels[i].convertTo(channel8U, CV_8U);
-		//cout << channel8U.type() << endl;
-		// ±N³q¹DÂà´«¦^ CV_32F
-		//channel8U.convertTo(channels[i], CV_32F, 1.0 / 255.0);
+	cout << "front's type" << front.type() << endl;
+	cout << "result's type" << img.type() << endl;
 
-		//cv::equalizeHist(channels[i], channels[i]);
-		clahe->apply(channels[i], channels[i]);
+	// ï¿½ï¿½Ü§ï¿½ï¿½Å¤Æ«áªºï¿½Ï¹ï¿½
+	cv::imshow("CLAHE Float Image", floatImage);
+	cv::Mat trail_front_result(front.size(), CV_8UC3);  // Initialize trail_front_result as a three-channel RGB image
+
+	for (int i = 0; i < front.rows; i++) {
+		for (int j = 0; j < front.cols; j++) {
+			int maskValue = static_cast<int>(front.at<uchar>(i, j));
+
+			if (maskValue > 0) {
+				// Set the pixel to your desired RGB color based on your requirements
+				trail_front_result.at<cv::Vec3b>(i, j) = cv::Vec3b(0, 0, 0);  // Set to black (adjust as needed)
+			}
+			else {
+				// Copy the pixel from trail to trail_front_result
+				trail_front_result.at<cv::Vec3b>(i, j) = trail.at<cv::Vec3b>(i, j);
+			}
+		}
 	}
-
-	// ¦X¨Ö³q¹D
-	merge(channels, floatImage);
-	// Åã¥Ü§¡¿Å¤Æ«áªº¹Ï¹³
-	imshow("Original Float Image", floatImage);
-
-	////±N¥[±j¹Lªº¼v¹³©Mfront mask¨ú¥X«e´ºª«¥ó
-	////normalize(floatImage, floatImage, 0.0, 1.0, NORM_MINMAX);
-	//split(floatImage, channels);
-	//Mat blueChannel, greenChannel, redChannel;
-	//normalize(channels[0], blueChannel, 0, 255, cv::NORM_MINMAX);
-	//channels[0].convertTo(blueChannel, CV_8U);
-	//channels[1].convertTo(greenChannel, CV_8U);
-	//channels[2].convertTo(redChannel, CV_8U);
-	//normalize(blueChannel, blueChannel, 0, 255, cv::NORM_MINMAX);
-	//normalize(greenChannel, greenChannel, 0, 255, cv::NORM_MINMAX);
-	//normalize(redChannel, redChannel, 0, 255, cv::NORM_MINMAX);
-
-	//imshow("CV_8U blueChannel Image", channels[0]);
-	//cout << "channels[0] type = " << channels[0].type() << endl;
-	//imshow("CV_8U greenChannel Image", greenChannel);
-	//imshow("CV_8U redChannel Image", redChannel);
+	cout << "trail_front_result's size" << trail_front_result.size() << endl;
 
 
-	//bitwise_and(blueChannel, front, blueChannel);
-	//bitwise_and(greenChannel, front, greenChannel);
-	//bitwise_and(redChannel, front, redChannel);
-
-
-	//imshow("blueChannel Image", blueChannel);
-	//imshow("greenChannel Image", greenChannel);
-	//imshow("redChannel Image", redChannel);
-	Mat floatMask;
-	Mat frontlayer = Mat::zeros(img.size(), CV_8UC3);
-	front.convertTo(floatMask, CV_8U);
-	cvtColor(floatMask, floatMask, cv::COLOR_GRAY2BGR);
-	cout << "floatImage type = " << floatImage.type() << endl;
-	cout << "floatMask type = " << floatMask.type() << endl;
-	bitwise_and(floatImage, floatMask, frontlayer);
-
-	// ¦X¨Ö³q¹D
-	//Mat frontlayer = Mat::zeros(img.size(), CV_8UC3);
-	//merge(channels, frontlayer);
-	////merge(std::vector<cv::Mat>{blueChannel, greenChannel, redChannel}, frontlayer);
-	//cout << frontlayer.type() << endl;
-
-	//frontlayer.convertTo(frontlayer, CV_8U);
-	//cout << frontlayer.type() << endl;
-	frontlayer.convertTo(frontlayer, CV_8UC3);
-	cout << frontlayer.type() << endl;
-	imshow("frontlayer", frontlayer*255);
-		
-
-
-	Mat result = Mat::zeros(img.size(), CV_8UC3);
-	add(trail, trail_mask, result);
-	//addWeighted(trail, 1.0, trail_mask, 1.0, 0.0, result);
-	imshow("result_startrail", result);
-
-	/*-------------------------------------------------------------------------------------«e´ºÅ|¥[¤£¦æ----------*/
-	//for (int i = 0; i < front.rows; ++i) {
-	//	for (int j = 0; j < front.cols; ++j) {
-	//		// ¨ú±o¤¸¯À­È
-	//		int maskValue = front.at<int>(i, j);
-	//		
-	//		// ®Ú¾Ú¾B¸nªº¹³¯À­È¿ï¾Ü imgA ©Î imgB ªº¹³¯À­È
-	//		if (maskValue == 255) {
-	//			result.at<cv::Vec3b>(i, j) = frontlayer.at<cv::Vec3b>(i, j);
-	//		}
-	//		else {
-	//			result.at<cv::Vec3b>(i, j) = result.at<cv::Vec3b>(i, j);
-	//		}
-	//		// ¦b³o¸Ì¶i¦æ§Aªº¾Ş§@¡A¨Ò¦p¥´¦L¤¸¯À­È
-	//		//std::cout << "Element at (" << i << ", " << j << "): " << img << std::endl;
-	//	}
-	//}
-	/*-------------------------------------------------------------------------------------«e´ºÅ|¥[¤£¦æ----------*/
-
-	add(result, frontlayer, result);
-	imshow("result_startrail_forntlayer", result);
+	addWeighted(img, 1.0, trail_front_result, 0.5, 0, img);
+	imshow("final Image", img);
 
 	waitKey();
+	return img;
 }
+
 
 int main()
 {
 	double START = clock();
-	string fileName = "./img./aurora_1.jpg";
+	string fileName = "./img./aurora_5.jpg";
 	Mat img = imread(fileName);
 
-	//resize(img, img, Size(img.cols * 0.6, img.rows * 0.6));
-	resize(img, img, Size(500, 500));
+	/*if (img.cols > 1200 || img.rows > 1200) {
+		resize(img, img, Size(img.cols * 0.3, img.rows * 0.3));
+	}*/
+	resize(img, img, Size(600,600));
 
 	Mat org_img = img.clone();
 	//cv::imshow("open", img);
@@ -694,30 +694,41 @@ int main()
 	//cout << "Big Star Location is: " << center << endl;
 
 
-	/*---------------------------------------------------------------------------------------------¥H¤W¬°«e´º¤§¥~*/
+	/*---------------------------------------------------------------------------------------------ä»¥ä¸Šç‚ºå‰æ™¯ä¹‹å¤–*/
 	cv::cvtColor(img, img, COLOR_BGR2GRAY);
 
 	//Mat segmentedImage;
 	Mat segmentedImage = hsv_kmeans_seg(org_img, 8);
 	Mat kmenas_seg = segmentedImage.clone();
-	vector<Point>star_location = get_star_location(star_result);//©Ò¦³¬P¬P¦ì¸m¡Amy medianºtºâªk¤¤¦³¥Î¨ì
+	vector<Point>star_location = get_star_location(star_result);//æ‰€æœ‰æ˜Ÿæ˜Ÿä½ç½®ï¼Œmy medianæ¼”ç®—æ³•ä¸­æœ‰ç”¨åˆ°
 	//cv::cvtColor(org_img, org_img, COLOR_Lab2BGR);
-	//³Ì²×¨ú±o«e´ºªººtºâªk
+	//æœ€çµ‚å–å¾—å‰æ™¯çš„æ¼”ç®—æ³•
 	Mat front;
 	front = final_front(org_img, kmenas_seg);
-	//cv::imshow("final front ", front);
+
+	cv::imshow("å–å‡ºå‰æ™¯ ", front);
 	//cv::imshow("segmentedImage_result", segmentedImage);
 
 
 	///*--------------------------------------------------------------*/
+
 	star_result.convertTo(star_result, CV_8U);
 	Mat trail;
 	star_result.copyTo(trail);
+	trail.setTo(0);
 	trail.create(Size(img.cols, img.rows), CV_8U);
+	//trail.zeros(trail.size(), trail.type());
 
-	Mat trail_mask;
-	trail_mask = StarTrail(center, star_result, trail);
-	ImageCombine(org_img, trail_mask, trail, front);
+	Mat enhance_img;
+	enhance_img = clahe_front(org_img, front);
+
+	Mat resultTrail, final_image;
+	resultTrail = StarTrail(center, star_result, trail);
+	//resultTrail = kaiStarTrail(center, star_result, trail);
+	imshow("resultTrail", resultTrail);
+
+	final_image = ImageCombine(enhance_img, trail, front);
+	imshow("final_image", final_image);
 
 	double END = clock();
 	cout << "\n\nThe total time is: " << (END - START) / CLOCKS_PER_SEC << " sec." << endl;
