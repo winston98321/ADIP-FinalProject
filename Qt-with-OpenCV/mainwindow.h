@@ -29,7 +29,8 @@ public:
     cv::Mat MatoriginImage;
     cv::Mat resizeOriginImage;
     cv::Mat star_result;
-
+    cv::Mat frontImage;
+    cv::Mat enhance_img;
 
 
 
@@ -39,7 +40,7 @@ public slots:
     void showHomepage();
     void showDiscription();
     void showAbout();
-    void toGenerateStarTrail();
+    void toFinalPage();
     void startGenerate();
     void savePng();
     void saveGif();
