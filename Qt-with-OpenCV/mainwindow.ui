@@ -443,7 +443,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
               </property>
               <property name="maximumSize">
                <size>
-                <width>16777215</width>
+                <width>750</width>
                 <height>16777215</height>
                </size>
               </property>
@@ -872,7 +872,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
              <string notr="true">QTabBar::tab(width: 120)</string>
             </property>
             <property name="currentIndex">
-             <number>0</number>
+             <number>1</number>
             </property>
             <widget class="QWidget" name="originImage_2">
              <attribute name="title">
@@ -895,7 +895,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
                 </property>
                 <property name="maximumSize">
                  <size>
-                  <width>16777215</width>
+                  <width>650</width>
                   <height>16777215</height>
                  </size>
                 </property>
@@ -927,8 +927,14 @@ li.checked::marker { content: &quot;\2612&quot;; }
                 </property>
                 <property name="minimumSize">
                  <size>
-                  <width>0</width>
-                  <height>600</height>
+                  <width>300</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>650</width>
+                  <height>16777215</height>
                  </size>
                 </property>
                 <property name="styleSheet">
@@ -980,6 +986,12 @@ li.checked::marker { content: &quot;\2612&quot;; }
                  <size>
                   <width>300</width>
                   <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>650</width>
+                  <height>16777215</height>
                  </size>
                 </property>
                 <property name="styleSheet">
@@ -1076,7 +1088,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
                 </property>
                 <property name="maximumSize">
                  <size>
-                  <width>16777215</width>
+                  <width>650</width>
                   <height>16777215</height>
                  </size>
                 </property>
@@ -1371,6 +1383,11 @@ li.checked::marker { content: &quot;\2612&quot;; }
             <item>
              <property name="text">
               <string>放射狀</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>彗星撞地球</string>
              </property>
             </item>
            </widget>

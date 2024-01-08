@@ -12,7 +12,7 @@
 #include <opencv2/opencv.hpp>
 #include <time.h>
 #include <cstdlib>
-#include<thread>
+#include <thread>
 #include <future>
 
 using namespace cv;
@@ -20,7 +20,7 @@ using namespace std;
 int Minutes;
 int Type;
 Point boundingBox1(0,0);
-Point boundingBox2(0,0);
+Point boundingBox2(499,499);
 Point center(0,0);
 Mat starTrail;
 Mat resultPng;
@@ -502,39 +502,52 @@ Mat StarTrail(Point center, const Mat star, Mat result) {
     //Point center(img.cols / 2, img.rows / 2);
     Mat rot_mat;
     Size img_size(star.cols, star.rows);
+    if(Type == 3){
+        rot_mat = getRotationMatrix2D(center, 0.5, 1.0);
+        Mat temp;
+        warpAffine(star, temp, rot_mat, img_size, INTER_LINEAR);	//轉第一下
 
-    //int times = minutes / ;
-    Mat temp;
-    temp.setTo(0);
-    threshold(star, star, 0, 255, THRESH_BINARY | THRESH_OTSU);
-    // result.setTo(0);
+        // 使用BORDER_CONSTANT，並指定邊界顏色為黑色
+        for (int i = 0; i < 2 * Minutes; i++) {
+            warpAffine(temp, temp, rot_mat, img_size, INTER_LINEAR);
+            bitwise_or(temp, result, result);
+        }
 
-    // 使用BORDER_CONSTANT，並指定邊界顏色為黑色
+        GaussianBlur(result, result, Size(3, 3), 0.2, 0.2);
+        cvtColor(result, result, COLOR_GRAY2BGR);
+    }else{
 
-    double scale = 0.99;
-    //for (int i = 0; i < minutes; i++) {
-    for (double radius = 0; radius < Minutes / 60 * 15; radius += 0.5) {
-        if (Type == 0) {
-            rot_mat = getRotationMatrix2D(center, radius, 1.0);
+
+        //int times = minutes / ;
+        Mat temp;
+        temp.setTo(0);
+        threshold(star, star, 0, 255, THRESH_BINARY | THRESH_OTSU);
+        // result.setTo(0);
+
+        // 使用BORDER_CONSTANT，並指定邊界顏色為黑色
+
+        double scale = 0.99;
+        //for (int i = 0; i < minutes; i++) {
+        for (double radius = 0; radius < Minutes / 60 * 15; radius += 0.5) {
+            if (Type == 0) {
+                rot_mat = getRotationMatrix2D(center, radius, 1.0);
+            }
+            else if (Type == 1) {
+                rot_mat = getRotationMatrix2D(center, radius, scale);
+            }
+            else if (Type == 2) {
+                rot_mat = getRotationMatrix2D(center, 0, scale);
+            }
+            warpAffine(star, temp, rot_mat, img_size);	//轉第一下
+            addWeighted(result, 1.0, temp, 0.8, 0.0, result);
+            scale *= 0.99;
+            // imshow("temp", result);
+            // waitKey();
         }
-        else if (Type == 1) {
-            rot_mat = getRotationMatrix2D(center, radius, scale);
-        }
-        else if (Type == 2) {
-            rot_mat = getRotationMatrix2D(center, 0, scale);
-        }
-        warpAffine(star, temp, rot_mat, img_size);	//轉第一下
-        addWeighted(result, 1.0, temp, 0.8, 0.0, result);
-        scale *= 0.99;
-        // imshow("temp", result);
-        // waitKey();
+
+        GaussianBlur(result, result, Size(3, 3), 0.5,0.5);
+        cvtColor(result, result, COLOR_GRAY2BGR);
     }
-
-    GaussianBlur(result, result, Size(3, 3), 0.5,0.5);
-    cvtColor(result, result, COLOR_GRAY2BGR);
-    cout << "Star Trail's type is: " << result.type() << endl;
-    imshow("Star Trail", result);
-
     return result;
 }
 
@@ -698,7 +711,8 @@ void MainWindow::on_uploadButton_clicked()
 
     Mat star_mask;
     star_result = get_star(resizeOriginImage, star_mask,174, 154, 60);  // 取得所有星星
-    center = find_bigstar(star_result, Point(0, 0), Point(499, 499));   // 找最大星星
+    center = find_bigstar(star_result, Point(0,0), Point(499,499));   // 找最大星星
+    // QRect(boundingBox1,boundingBox2);
     cout << "Big Star Location is: " << center << endl;
 
     cv::resize(star_result, star_result, MatoriginImage.size());
@@ -713,7 +727,6 @@ void MainWindow::on_uploadButton_clicked()
 
 void MainWindow::showHomepage() //回到首頁
 {
-    haveFront = false;
     ui->stackedWidget->setCurrentIndex(0);
 
     ui->R->setValue(174);
@@ -962,6 +975,7 @@ void MainWindow::Mouse_Relese()
     int yy = ui->starIImage->position.y();
     boundingBox2.x = xx;
     boundingBox2.y = yy;
+    center = find_bigstar(star_result, boundingBox1, boundingBox2);   // 找最大星星
 }
 
 void MainWindow::Mouse_Move()
