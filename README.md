@@ -72,10 +72,28 @@ Here's a comparison between the input image and the generated star trails:
 
 Here are more examples of generated star trails:
 
-| Example 1 | Example 2 |
-|-----------|-----------|
-| <img src="result/demo2.png" width="800" height="300" alt="Demo 2"> | <img src="result/demo3.png" width="800" height="300" alt="Demo 3"> |
+Here are more examples of generated star trails:
 
- Example 3 || Example 4 | Example 5 | Example 6 |
-|-----------|-----------|-----------|-----------|
-|<img src="result/demo4.png" width="400" height="300" alt="Demo 4"> | <img src="result/demo5.png" width="400" height="300" alt="Demo 5"> | <img src="result/demo6.png" width="400" height="300" alt="Demo 6"> | <img src="result/demo7.png" width="400" height="300" alt="Demo 7"> |
+| Example 1 |
+|-----------|
+| <img src="result/demo2.png" width="800" height="300" alt="Demo 2"> |
+
+| Example 2 |
+|-----------|
+| <img src="result/demo3.png" width="800" height="300" alt="Demo 3"> |
+
+| Example 3 |
+|-----------|
+| <img src="result/demo4.png" width="800" height="300" alt="Demo 4"> |
+
+| Example 4 |
+|-----------|
+| <img src="result/demo5.png" width="800" height="300" alt="Demo 5"> |
+
+| Example 5 |
+|-----------|
+| <img src="result/demo6.png" width="800" height="300" alt="Demo 6"> |
+
+| Example 6 |
+|-----------|
+| <img src="result/demo7.png" width="800" height="300" alt="Demo 7"> |
