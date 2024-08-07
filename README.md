@@ -76,11 +76,11 @@ Here are more examples of generated star trails:
 
 | Example 1 |
 |-----------|
-| <img src="result/demo2.png" width="800" height="600" alt="Demo 2"> |
+| <img src="result/demo2.png" width="800" height="400" alt="Demo 2"> |
 
 | Example 2 |
 |-----------|
-| <img src="result/demo3.png" width="800" height="600" alt="Demo 3"> |
+| <img src="result/demo3.png" width="800" height="400" alt="Demo 3"> |
 
 | Example 3 |
 |-----------|
