@@ -66,7 +66,7 @@ Here's a comparison between the input image and the generated star trails:
 
 | Input | Output |
 |-------|--------|
-| ![Input Image](img/aurora_5.jpg) | ![Output Image](result/aurora_5_demo.png) |
+| <img src="img/aurora_5.jpg" width="400" height="300" alt="Input Image"> | <img src="result/aurora_5_demo.png" width="1200" height="300" alt="Output Image"> |
 
 ### More Examples
 
@@ -74,8 +74,8 @@ Here are more examples of generated star trails:
 
 | Example 1 | Example 2 | Example 3 |
 |-----------|-----------|-----------|
-| ![Demo 2](result/demo2.png) | ![Demo 3](result/demo3.png) | ![Demo 4](result/demo4.png) |
+| <img src="result/demo2.png" width="500" height="200" alt="Demo 2"> | <img src="result/demo3.png" width="500" height="200" alt="Demo 3"> | <img src="result/demo4.png" width="250" height="200" alt="Demo 4"> |
 
 | Example 4 | Example 5 | Example 6 |
 |-----------|-----------|-----------|
-| ![Demo 5](result/demo5.png) | ![Demo 6](result/demo6.png) | ![Demo 7](result/demo7.png) |
+| <img src="result/demo5.png" width="250" height="200" alt="Demo 5"> | <img src="result/demo6.png" width="250" height="200" alt="Demo 6"> | <img src="result/demo7.png" width="250" height="200" alt="Demo 7"> |
