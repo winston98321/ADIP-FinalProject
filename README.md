@@ -4,8 +4,10 @@
 
 This project aims to generate star trail images from input night sky photographs. The process includes preprocessing, star trail drawing, image composition, and more.
 
-##WorkFlow
+## WorkFlow
+
 | <img src="workflow.png" width="800" height="400"> |
+
 ## Features
 
 - Star detection and selection
@@ -75,7 +77,6 @@ Here's a comparison between the input image and the generated star trails:
 
 Here are more examples of generated star trails:
 
-Here are more examples of generated star trails:
 
 | Example 1 |
 |-----------|
