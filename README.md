@@ -12,6 +12,7 @@ This project aims to generate star trail images from input night sky photographs
 - Foreground enhancement
 - Image composition
 - User-friendly GUI
+- Novel Algorithm combine Guided filter and K-means
 
 ## Technology Stack
 
