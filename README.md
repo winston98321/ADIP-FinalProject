@@ -3,7 +3,9 @@
 ## Overview
 
 This project aims to generate star trail images from input night sky photographs. The process includes preprocessing, star trail drawing, image composition, and more.
+##WorkFlow
 
+| <img src="workflow.jpg" width="800" height="400"> |
 ## Features
 
 - Star detection and selection
